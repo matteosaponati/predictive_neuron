@@ -17,6 +17,7 @@ Author:
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 def set_device():
   device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -56,26 +57,23 @@ class NeuronClass(nn.Module):
         
     def backward_online(self,x):
         
-        def surr_grad(v,gamma,v_th):
-            return gamma*(1/(np.abs(v - v_th)+1.0)**2)   
-        
         self.epsilon =  x - self.v*self.w
         self.grad = self.v*self.epsilon + torch.dot(self.epsilon,self.w)*self.p
-        self.p = ((1-self.dt/self.tau) + surr_grad(self.v,self.gamma,self.v_th))*self.p + x
+        self.p = (1-self.dt/self.tau)*self.p + x
         
     def backward_offline(self,v,z,x):
         
+        epsilon = x - v*self.w
+        filter = torch.tensor([(1-self.dt/self.tau)**(x.shape[1]-i-1) 
+                                for i in range(v.shape[1])]).float()
+        p = F.conv1d(x.permute(0,2,1),filter.expand(self.par.N,-1,-1),
+                         padding=x.shape[1],groups=self.par.n)[:,:,1:x.shape[1]+1]
+        grad = v*epsilon + epsilon@self.w*p
         return grad
 
 '------------------'
 
 def train(par,online=True):
-    """
-    training
-    input:
-        1. par: set of parameters
-        2. online: check for online computation of the gradient
-    """
 
     loss = torch.linalg.norm()
     w = []
@@ -83,13 +81,16 @@ def train(par,online=True):
     neuron = NeuronClass(par)
     for e in range(par.epochs):
         
+        ## set inputs
+        x = funs.input()
+        
         neuron.state()
         for t in range(par.T):
             
             neuron(x[:,t])
             if online: neuron.backwar_online(x[:,t])
             
-        E = loss(x - v*neuron.w)
+        E = loss(x - neuron.v*neuron.w)
         E.backward()
         w.append(neuron.w.item())
             
