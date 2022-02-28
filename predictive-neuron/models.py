@@ -52,8 +52,9 @@ class NeuronClass(nn.Module):
         
         self.v = (1-self.par.dt/self.par.tau)*self.v + np.dot(self.w,x) \
                     - self.par.v_th*self.z.detach()
-        if self.v - self.par.v_th > 0: self.z = 1
-        else: self.z = 0
+        with torch.no_grad():
+            if self.v - self.par.v_th > 0: self.z = 1
+            else: self.z = 0
         
     def backward_online(self,x):
         
