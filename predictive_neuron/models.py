@@ -37,34 +37,34 @@ class NeuronClass(nn.Module):
     def __init__(self,par):
         super(NeuronClass,self).__init__() 
         
-        self.par = par                
+        self.par = par  
+        self.alpha = (1-self.par.dt/self.par.tau)              
         self.w = nn.Parameter(torch.empty(self.par.N)).to(self.device)
         torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.N))
         
     def state(self):
-        self.v = torch.zeros(self.par.batch)
-        self.z = torch.zeros(self.par.batch)
+        self.v = torch.zeros(self.par.batch).to(self.par.device)
+        self.z = torch.zeros(self.par.batch).to(self.par.device)
         self.p, self.epsilon = torch.zeros(self.par.batch,self.par.N).to(self.par.device), \
                                 torch.zeros(self.par.batch,self.par.N).to(self.par.device)
         self.grad = np.zeros(self.par.N).to(self.par.device)
         
     def __call__(self,x):
         
-        self.v = (1-self.par.dt/self.par.tau)*self.v + np.dot(self.w,x) \
+        self.v = self.alpha*self.v + x@self.w \
                     - self.par.v_th*self.z.detach()
-        with torch.no_grad():
-            if self.v - self.par.v_th > 0: self.z = 1
-            else: self.z = 0
+        self.z[self.v - self.par.v_th > 0] = 1
+        # with torch.no_grad(): necessary for the reset ?
         
     def backward_online(self,x):
         
-        self.epsilon =  x - self.v*self.w
-        self.grad = self.v*self.epsilon + torch.dot(self.epsilon,self.w)*self.p
-        self.p = (1-self.dt/self.tau)*self.p + x
+        self.epsilon =  x - self.v[:,None]*self.w[None,:]
+        self.grad = self.v[:,None]*self.epsilon + (self.epsilon@self.w)[:,None]*self.p
+        self.p = self.alpha*self.p + x
         
     def backward_offline(self,v,z,x):
         
-        epsilon = x - v*self.w
+        epsilon = x - torch.einsum("btj,j->btj",v,self.w)
         filter = torch.tensor([(1-self.dt/self.tau)**(x.shape[1]-i-1) 
                                 for i in range(v.shape[1])]).float()
         p = F.conv1d(x.permute(0,2,1),filter.expand(self.par.N,-1,-1),

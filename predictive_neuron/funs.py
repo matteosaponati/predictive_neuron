@@ -14,15 +14,21 @@ Author:
 ----------------------------------------------
 """
 
-import numpy as np
 import torch
 import torch.nn as nn
 
 'create input pattern'
-def sequence(par,timing):    
 
-    inputs = np.zeros((par.N,par.T))
+def get_sequence(par,timing):
+
+    prob = par.freq*par.dt
+    mask = torch.rand(par.batch,par.T,par.N).to(par.device)
+    x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
+    x_data[mask<prob] = 1.0
+    
     for k in range(par.N):
-        inputs[k,np.array(timing[k]/par.dt).astype('int')]= 1
-        inputs[k,:] = np.convolve(inputs[k,:],np.exp(-np.arange(0,par.T,par.dt)/par.tau))[:par.T]        
-    return inputs
+        x_data[:,k,timing[k]] = 1
+        
+    ## convolve with kernel
+    
+    return x_data
