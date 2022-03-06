@@ -31,15 +31,16 @@ class NeuronClass(nn.Module):
     - update the recursive part of the gradient and the membrane potential
     - thresholding nonlinearity and emission of output spike if voltage crosses the threshold
     inputs:
-        1. par: model parameters
+        par: model parameters
     """
     
     def __init__(self,par):
         super(NeuronClass,self).__init__() 
         
         self.par = par  
-        self.alpha = (1-self.par.dt/self.par.tau)              
-        self.w = nn.Parameter(torch.empty(self.par.N)).to(self.device)
+        self.alpha = (1-self.par.dt/self.par.tau_m)              
+        ## only positive values
+        self.w = nn.Parameter(torch.empty(self.par.N)).to(self.par.device)
         torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.N))
         
     def state(self):
@@ -47,14 +48,14 @@ class NeuronClass(nn.Module):
         self.z = torch.zeros(self.par.batch).to(self.par.device)
         self.p, self.epsilon = torch.zeros(self.par.batch,self.par.N).to(self.par.device), \
                                 torch.zeros(self.par.batch,self.par.N).to(self.par.device)
-        self.grad = np.zeros(self.par.N).to(self.par.device)
+        self.grad = torch.zeros(self.par.N).to(self.par.device)
         
     def __call__(self,x):
         
+        self.z = torch.zeros(self.par.batch).to(self.par.device)
         self.v = self.alpha*self.v + x@self.w \
                     - self.par.v_th*self.z.detach()
         self.z[self.v - self.par.v_th > 0] = 1
-        # with torch.no_grad(): necessary for the reset ?
         
     def backward_online(self,x):
         
@@ -71,28 +72,16 @@ class NeuronClass(nn.Module):
                          padding=x.shape[1],groups=self.par.n)[:,:,1:x.shape[1]+1]
         grad = v*epsilon + epsilon@self.w*p
         return grad
-
+    
 '------------------'
 
-def train(par,online=True):
+def train(par,neuron,x_data,online=False):
+    
+    v = []
+    for t in range(par.T):
+        neuron(x_data[:,t])
+        v.append(neuron.v)
+        if online: neuron.backwar_online(x_data[:,t])
+    
+    return neuron, torch.stack(v,dim=1)
 
-    loss = torch.linalg.norm()
-    w = []
-
-    neuron = NeuronClass(par)
-    for e in range(par.epochs):
-        
-        ## set inputs
-        x = funs.input()
-        
-        neuron.state()
-        for t in range(par.T):
-            
-            neuron(x[:,t])
-            if online: neuron.backwar_online(x[:,t])
-            
-        E = loss(x - neuron.v*neuron.w)
-        E.backward()
-        w.append(neuron.w.item())
-            
-    return w
