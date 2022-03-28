@@ -29,7 +29,7 @@ class NeuronClass(nn.Module):
     - get the input vector at the current timestep
     - compute the current prediction error
     - update the recursive part of the gradient and the membrane potential
-    - thresholding nonlinearity and emission of output spike if voltage crosses the threshold
+    - thresholding nonlinearity and evaluation of output spike
     inputs:
         par: model parameters
     """
@@ -39,15 +39,16 @@ class NeuronClass(nn.Module):
         
         self.par = par  
         self.alpha = (1-self.par.dt/self.par.tau_m)              
-        ## only positive values
+        
         self.w = nn.Parameter(torch.empty(self.par.N)).to(self.par.device)
         torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.N))
         
     def state(self):
         self.v = torch.zeros(self.par.batch).to(self.par.device)
         self.z = torch.zeros(self.par.batch).to(self.par.device)
-        self.p, self.epsilon = torch.zeros(self.par.batch,self.par.N).to(self.par.device), \
-                                torch.zeros(self.par.batch,self.par.N).to(self.par.device)
+        self.p = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
+        self.epsilon = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
+                                
         self.grad = torch.zeros(self.par.N).to(self.par.device)
         
     def __call__(self,x):
@@ -58,30 +59,35 @@ class NeuronClass(nn.Module):
         self.z[self.v - self.par.v_th > 0] = 1
         
     def backward_online(self,x):
+        """
+        online evaluation of the gradient:
+            - compute the local prediction error epsilon
+            - compute the local component of the gradient
+            - update the pre-synaptic traces
+        """
         
         self.epsilon =  x - self.v[:,None]*self.w[None,:]
-        self.grad = self.v[:,None]*self.epsilon + (self.epsilon@self.w)[:,None]*self.p
+        self.grad = -(self.v[:,None]*self.epsilon + \
+                        (self.epsilon@self.w)[:,None]*self.p)
         self.p = self.alpha*self.p + x
         
-    def backward_offline(self,v,z,x):
+    def backward_offline(self,v,x):
+        """
+        offline evaluation of the gradient:
+            - compute the total prediction error
+            - compute the recursive component of the gradient
+            - computes the total gradient
+        """
         
-        epsilon = x - torch.einsum("btj,j->btj",v,self.w)
-        filter = torch.tensor([(1-self.dt/self.tau)**(x.shape[1]-i-1) 
-                                for i in range(v.shape[1])]).float()
-        p = F.conv1d(x.permute(0,2,1),filter.expand(self.par.N,-1,-1),
-                         padding=x.shape[1],groups=self.par.n)[:,:,1:x.shape[1]+1]
+        epsilon = x - torch.einsum("bt,j->btj",v,self.w)
+        filters = torch.tensor([self.alpha**(x.shape[1]-i-1) 
+                                for i in range(v.shape[1])]).float().view(1, 1, -1).to(self.par.device)
+        p = F.conv1d(x.permute(0,2,1),filters.expand(self.par.N,-1,-1),
+                         padding=x.shape[1],groups=self.par.N)[:,:,1:x.shape[1]+1]
+        ## check how to compute this
         grad = v*epsilon + epsilon@self.w*p
         return grad
     
 '------------------'
 
-def num_solution(par,neuron,x_data,online=False):
-    
-    v = []
-    for t in range(par.T):
-        neuron(x_data[:,t])
-        v.append(neuron.v)
-        if online: neuron.backwar_online(x_data[:,t])
-    
-    return neuron, torch.stack(v,dim=1)
 
