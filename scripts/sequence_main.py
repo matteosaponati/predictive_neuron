@@ -32,6 +32,8 @@ parser.add_argument('--online',type=str,default='False',
 'training algorithm'
 parser.add_argument('--l_rate',type=float, default=1e-3,
                     help='learning rate')
+parser.add_argument('--scheme',type=str, default=1e-3,
+                    help='training algorithm')
 parser.add_argument('--epochs', type=int, default=400,
                     help='number of epochs')
 parser.add_argument('--seed', type=int, default=1992)
@@ -69,13 +71,10 @@ accuracy, runtime, loss_class,loss_reg =  train.train(par)
 
 '-----------'
 
-<<<<<<< HEAD
 print('saving')
 np.save('data/accuracy_tau_{}_eprop_{}_approx_{}_n_{}_rep_{}'.format(par.tau_m,par.eprop,par.eprop_approx,par.n,par.rep),accuracy)
 np.save('data/runtime_tau_{}_eprop_{}_approx_{}_n_{}_rep_{}'.format(par.tau_m,par.eprop,par.eprop_approx,par.n,par.rep),runtime)     
 np.save('data/loss_class_tau_{}_eprop_{}_approx_{}_n_{}_rep_{}'.format(par.tau_m,par.eprop,par.eprop_approx,par.n,par.rep),loss_class)  
 np.save('data/loss_reg_tau_{}_eprop_{}_approx_{}_n_{}_rep_{}'.format(par.tau_m,par.eprop,par.eprop_approx,par.n,par.rep),loss_reg)
-=======
-from predictive_neuron import models 
->>>>>>> f62acb932a3863c2168685ec0e08322a28f88b12
+
 
