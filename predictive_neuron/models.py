@@ -52,9 +52,9 @@ class NeuronClass(nn.Module):
         
     def __call__(self,x):
         
-        self.z = torch.zeros(self.par.batch).to(self.par.device)
         self.v = self.alpha*self.v + x@self.w \
                     - self.par.v_th*self.z.detach()
+        self.z = torch.zeros(self.par.batch).to(self.par.device)
         self.z[self.v - self.par.v_th > 0] = 1
         
     def backward_online(self,x):
@@ -75,7 +75,7 @@ class NeuronClass(nn.Module):
     
 '------------------'
 
-def train(par,neuron,x_data,online=False):
+def num_solution(par,neuron,x_data,online=False):
     
     v = []
     for t in range(par.T):
