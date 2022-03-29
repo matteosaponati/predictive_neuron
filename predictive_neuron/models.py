@@ -23,6 +23,8 @@ def set_device():
   device = "cuda" if torch.cuda.is_available() else "cpu"
   return device
 
+'------------------'
+
 class NeuronClass(nn.Module):
     """
     NEURON MODEL
@@ -39,17 +41,16 @@ class NeuronClass(nn.Module):
         
         self.par = par  
         self.alpha = (1-self.par.dt/self.par.tau_m)              
-        
         self.w = nn.Parameter(torch.empty(self.par.N)).to(self.par.device)
         torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.N))
         
     def state(self):
+        
         self.v = torch.zeros(self.par.batch).to(self.par.device)
         self.z = torch.zeros(self.par.batch).to(self.par.device)
         self.p = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
         self.epsilon = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
-                                
-        self.grad = torch.zeros(self.par.N).to(self.par.device)
+        self.grad = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
         
     def __call__(self,x):
         
@@ -73,10 +74,7 @@ class NeuronClass(nn.Module):
         
     def backward_offline(self,v,x):
         """
-        offline evaluation of the gradient:
-            - compute the total prediction error
-            - compute the recursive component of the gradient
-            - computes the total gradient
+        offline evaluation of the gradient
         """
         
         epsilon = x - torch.einsum("bt,j->btj",v,self.w)
@@ -87,6 +85,25 @@ class NeuronClass(nn.Module):
         ## check how to compute this
         grad = v*epsilon + epsilon@self.w*p
         return grad
+        
+    def update_online(self,bound=False):
+        """
+        online update of parameters
+        soft: apply soft lower-bound, update proportional to parameters
+        hard: apply hard lower-bound, hard-coded positive parameters
+        """
+        if bound == 'soft':
+            self.w =  nn.Parameter(self.w - 
+                                   self.par.eta*(self.w*torch.mean(self.grad,dim=0)))
+        if bound == 'hard':
+            self.w =  nn.Parameter(self.w - 
+                                   self.par.eta*torch.mean(self.grad,dim=0))
+            self.w = nn.Parameter(torch.where(self.w<0,
+                                       torch.zeros_like(self.w),self.w))
+        else:
+            self.w =  nn.Parameter(self.w - 
+                                   self.par.eta*torch.mean(self.grad,dim=0))
+        
     
 '------------------'
 
