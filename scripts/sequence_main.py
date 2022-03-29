@@ -4,7 +4,8 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "sequence_main.py"
-Predictive processes at the single neuron level 
+predictive processes at the single neuron level - single neuron model
+trained on input sequences
 
 Author:
     
@@ -22,18 +23,22 @@ import train
 
 parser = argparse.ArgumentParser(
                     description="""
-                    Single neuron trained on a predictive coding scheme
+                    single neuron trained on sequences
                     """
                     )
 
 'options'
 parser.add_argument('--online',type=str,default='False',
-                    help='train mode with online approxi algorithm')
+                    help='train mode with online approx algorithm')
+parser.add_argument('--hardbound',type=str,default='False',
+                    help='set hard lower bound for parameters')
+
 'training algorithm'
+parser.add_argument('--optimizer',type=str, 
+                    choices=['SGD','Adam'],default='Adam',
+                    help='choice of optimizer')
 parser.add_argument('--l_rate',type=float, default=1e-3,
                     help='learning rate')
-parser.add_argument('--scheme',type=str, default=1e-3,
-                    help='training algorithm')
 parser.add_argument('--epochs', type=int, default=400,
                     help='number of epochs')
 parser.add_argument('--seed', type=int, default=1992)
@@ -42,11 +47,18 @@ parser.add_argument('--batch', type=int, default=64,
 'architecture'
 parser.add_argument('--N', type=int, default=40) 
 parser.add_argument('--T', type=int, default=40) 
-parser.add_argument('--timing', type=int, default=40) 
+'inputs'
+parser.add_argument('--Dt', type=int, default=2) 
+parser.add_argument('--noise',type=str,default='False',
+                    help='add noise for generalization')
+parser.add_argument('--distractor',type=str,default='False',
+                    help='add equal amount of distractors')
+parser.add_argument('--freq', type=int, default=5) 
+parser.add_argument('--jitter', type=int, default=2) 
 'neuronal model'
-parser.add_argument('--dt', type=float, default= 1) 
-parser.add_argument('--tau_m', type=float, default= 2000.) 
-parser.add_argument('--v_th', type=float, default= .6)
+parser.add_argument('--dt', type=float, default= .05) 
+parser.add_argument('--tau_m', type=float, default= 20.) 
+parser.add_argument('--v_th', type=float, default= 1.)
 parser.add_argument('--dtype', type=str, default=torch.float) 
 
 par = parser.parse_args()
