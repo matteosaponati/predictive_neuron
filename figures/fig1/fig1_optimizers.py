@@ -3,9 +3,11 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"fig1_optimizers.py"
-numerical comparison on simple optimization process with 2 pre-synaptic inputs.
-optimizers: online, online with hard-bound, SGD (offline), Adam (offline)
+"fig1_optimizers.py":
+    
+    - numerical comparison on simple optimization process 
+    with 2 pre-synaptic inputs.
+    optimizers: online, online with hard-bound, SGD (offline), Adam (offline)
 
 Author:
     
