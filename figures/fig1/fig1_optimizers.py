@@ -22,8 +22,12 @@ import torch
 import types
 import torch.nn as nn
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 22})
+plt.rc('axes', axisbelow=True)
 
 from predictive_neuron import models, funs
+
+savedir = '/gs/home/saponatim/'
 
 par = types.SimpleNamespace()
 
@@ -31,12 +35,12 @@ par = types.SimpleNamespace()
 par.N = 2
 par.T = 300
 par.batch = 1
-par.epochs = 600
+par.epochs = 2000
 par.device = 'cpu'
 
 'model parameters'
 par.dt = .05
-par.eta = 1e-5
+par.eta = 3e-5
 par.tau_m = 10.
 par.v_th = 2.5
 par.tau_x = 2.
@@ -96,10 +100,11 @@ def train(par,neuron,x_data,online=False,bound=False):
 
 '----------------'
 
+w_0 = .03
+
 'online optimization'
 neuron = models.NeuronClass(par)
 loss = nn.MSELoss(reduction='sum')
-w_0 = .03
 neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
 'optimization'
 E_on, w1_on, w2_on, v_on, spk_on = train(par,neuron,x_data,
@@ -108,7 +113,6 @@ E_on, w1_on, w2_on, v_on, spk_on = train(par,neuron,x_data,
 'online optimization with hard bounds'
 neuron = models.NeuronClass(par)
 loss = nn.MSELoss(reduction='sum')
-w_0 = .03
 neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
 'optimization'
 E_onh, w1_onh, w2_onh, v_onh, spk_onh = train(par,neuron,x_data,
@@ -117,7 +121,6 @@ E_onh, w1_onh, w2_onh, v_onh, spk_onh = train(par,neuron,x_data,
 'offline optimization: BPTT with SGD'
 neuron = models.NeuronClass(par)
 loss = nn.MSELoss(reduction='sum')
-w_0 = .03
 neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
 'optimization through bptt'
 optimizer = torch.optim.SGD(neuron.parameters(),lr=par.eta)
@@ -126,23 +129,22 @@ E_sgd, w1_sgd, w2_sgd, v_sgd, spk_sgd = train(par,neuron,x_data)
 'offline optimization: BPTT with Adam'
 neuron = models.NeuronClass(par)
 loss = nn.MSELoss(reduction='sum')
-w_0 = .03
 neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
 'optimization through bptt'
 optimizer = torch.optim.Adam(neuron.parameters(),
                               lr=1e-3,betas=(.9,.999))
 E_adam, w1_adam, w2_adam, v_adam, spk_adam = train(par,neuron,x_data)
 
-#%%
+'----------------'
 
 'plots'
 
 fig = plt.figure(figsize=(6,6), dpi=300)
 plt.plot(w1_on,color='mediumvioletred',linewidth=2,label = 'online')
 plt.plot(w2_on,color='mediumvioletred',linewidth=2,linestyle='dashed')
-plt.plot(w1_sgd,color='navy',linewidth=2,label = 'sgd')
+plt.plot(w1_sgd,color='navy',linewidth=2,label = 'SGD')
 plt.plot(w2_sgd,color='navy',linewidth=2,linestyle='dashed')
-plt.plot(w1_adam,color='purple',linewidth=2,label = 'adam')
+plt.plot(w1_adam,color='purple',linewidth=2,label = 'Adam')
 plt.plot(w2_adam,color='purple',linewidth=2,linestyle='dashed')
 plt.plot(w1_onh,color='lightblue',linewidth=2,label = 'online - hard')
 plt.plot(w2_onh,color='lightblue',linewidth=2,linestyle='dashed')
@@ -152,18 +154,26 @@ plt.xlim(0,par.epochs)
 plt.legend()
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(savedir+'w_online_bound.png',format='png', dpi=300)
+plt.savefig(savedir+'w_online_bound.pdf',format='pdf', dpi=300)
+plt.close('all')
 
 fig = plt.figure(figsize=(6,6), dpi=300)
-plt.plot(E_on,color='mediumvioletred',linewidth=2,label = 'online')
-plt.plot(E_sgd,color='navy',linewidth=2,label = 'sgd')
-plt.plot(E_adam,color='purple',linewidth=2,label = 'adam')
-plt.plot(E_onh,color='lightblue',linewidth=2,label = 'online - hard')
+plt.plot(np.abs(np.array(w1_on)-np.array(w1_sgd)),color='navy',linewidth=2,label = r'$w_1$')
+plt.plot(np.abs(np.array(w2_on)-np.array(w2_sgd)),color='mediumvioletred',linewidth=2,label=r'$w_2$')
+plt.plot(np.abs(np.array(w1_onh)-np.array(w1_sgd)),color='navy',linewidth=2,linestyle = 'dashed')
+plt.plot(np.abs(np.array(w2_onh)-np.array(w2_sgd)),color='mediumvioletred',linewidth=2,linestyle = 'dashed')
 plt.xlabel(r'epochs')
-plt.ylabel(r'$\mathcal{L}$')
+plt.ylabel(r'$| \Delta \vec{w}|$')
 plt.xlim(0,par.epochs)
+plt.yscale('log')
 plt.legend()
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(savedir+'dw_online_bound.png',format='png', dpi=300)
+plt.savefig(savedir+'dw_online_bound.pdf',format='pdf', dpi=300)
+plt.close('all')
+
 
 fig = plt.figure(figsize=(6,6), dpi=300)
 for k,j in zip(spk_on,range(par.epochs)):
@@ -180,7 +190,8 @@ for k in timing*par.dt:
 plt.xlabel(r'epochs')
 plt.xlim(0,par.epochs)
 plt.ylim(0,10)
-plt.legend()
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-    
+plt.savefig(savedir+'s_online_bound.png',format='png', dpi=300)
+plt.savefig(savedir+'s_online_bound.pdf',format='pdf', dpi=300)
+plt.close('all')

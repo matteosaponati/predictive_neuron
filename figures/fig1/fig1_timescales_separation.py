@@ -24,6 +24,8 @@ import matplotlib.pyplot as plt
 
 from predictive_neuron import models, funs
 
+savedir = '/gs/home/saponatim/'
+
 par = types.SimpleNamespace()
 
 'architecture'
@@ -44,18 +46,18 @@ par.freq = 0
 timing = np.array([2.,6.])/par.dt
 x_data = funs.get_sequence(par,timing)
 
-#%%
 
-tau = np.linspace(1,50,40)
-eta = np.logspace(-8,-1,40)
+sweep = 200
+tau = np.linspace(1,500,sweep)
+eta = np.logspace(-8,-1,sweep)
 
-w1_on, w2_on = np.zeros((40,40)), np.zeros((40,40))
-w1_sgd, w2_sgd = np.zeros((40,40)), np.zeros((40,40))
+w1_on, w2_on = np.zeros((sweep,sweep)), np.zeros((sweep,sweep))
+w1_sgd, w2_sgd = np.zeros((sweep,sweep)), np.zeros((sweep,sweep))
 
-for k in range(40):
+for k in range(sweep):
     
     par.eta = eta[k]
-    for j in range(40):
+    for j in range(sweep):
         print('{} and {}'.format(j,k))
         
         par.tau_m = tau[j]
@@ -64,7 +66,7 @@ for k in range(40):
 
         neuron = models.NeuronClass(par)
         loss = nn.MSELoss(reduction='sum')
-        w_0 = .01
+        w_0 = .02
         neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
         
         neuron.state()
@@ -83,7 +85,7 @@ for k in range(40):
         
         neuron = models.NeuronClass(par)
         loss = nn.MSELoss(reduction='sum')
-        w_0 = .01
+        w_0 = .02
         neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
         optimizer = torch.optim.SGD(neuron.parameters(),lr=par.eta)
         
@@ -103,14 +105,32 @@ for k in range(40):
         w1_sgd[j,k] = neuron.w[0].item()
         w2_sgd[j,k] = neuron.w[1].item()
     
-    
 #%%
-plt.yticks(range(40)[::5],tau[::5].round(0))
-plt.xticks(range(40)[::10],eta[::10].round(7))
+
+
+'plot'
+from matplotlib.colors import LogNorm
+class MidPointLogNorm(LogNorm):
+    def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+        LogNorm.__init__(self,vmin=vmin, vmax=vmax, clip=clip)
+        self.midpoint=midpoint
+    def __call__(self, value, clip=None):
+        # I'm ignoring masked values and all kinds of edge cases to make a
+        # simple example...
+        x, y = [np.log(self.vmin), np.log(self.midpoint), np.log(self.vmax)], [0, 0.5, 1]
+        return np.ma.masked_array(np.interp(np.log(value), x, y))
+
 
 test = np.abs(w1_sgd-w1_on)/w1_sgd
 test[test==0]=10e-8
-#plt.imshow(np.abs(w1_sgd-w1_on),norm=matplotlib.colors.LogNorm());plt.colorbar()
-
-plt.imshow(test,norm=matplotlib.colors.LogNorm());plt.colorbar()
-        
+fig = plt.figure(figsize=(7,6), dpi=300)
+plt.pcolormesh(eta,tau,test,norm=MidPointLogNorm(midpoint=1),cmap='coolwarm')
+plt.xscale('log')
+plt.yscale('log')
+plt.colorbar()
+plt.xlabel(r'$\eta$')
+plt.ylabel(r'$\tau_m$')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(savedir+'dw_online_bound.png',format='png', dpi=300)
+plt.savefig(savedir+'dw_online_bound.pdf',format='pdf', dpi=300)
+plt.close('all')
