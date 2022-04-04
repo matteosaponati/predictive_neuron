@@ -21,6 +21,8 @@ import torch
 import types
 import torch.nn as nn
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 22})
+plt.rc('axes', axisbelow=True)
 
 from predictive_neuron import models, funs
 
@@ -47,7 +49,7 @@ timing = np.array([2.,6.])/par.dt
 x_data = funs.get_sequence(par,timing)
 
 
-sweep = 200
+sweep = 500
 tau = np.linspace(1,500,sweep)
 eta = np.logspace(-8,-1,sweep)
 
@@ -115,8 +117,6 @@ class MidPointLogNorm(LogNorm):
         LogNorm.__init__(self,vmin=vmin, vmax=vmax, clip=clip)
         self.midpoint=midpoint
     def __call__(self, value, clip=None):
-        # I'm ignoring masked values and all kinds of edge cases to make a
-        # simple example...
         x, y = [np.log(self.vmin), np.log(self.midpoint), np.log(self.vmax)], [0, 0.5, 1]
         return np.ma.masked_array(np.interp(np.log(value), x, y))
 
@@ -124,13 +124,13 @@ class MidPointLogNorm(LogNorm):
 test = np.abs(w1_sgd-w1_on)/w1_sgd
 test[test==0]=10e-8
 fig = plt.figure(figsize=(7,6), dpi=300)
-plt.pcolormesh(eta,tau,test,norm=MidPointLogNorm(midpoint=1),cmap='coolwarm')
+plt.pcolormesh(eta,1/tau,test,norm=MidPointLogNorm(midpoint=1e1,vmax=1e16),cmap='coolwarm')
 plt.xscale('log')
 plt.yscale('log')
 plt.colorbar()
 plt.xlabel(r'$\eta$')
-plt.ylabel(r'$\tau_m$')
+plt.ylabel(r'$1/\tau_m$')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig(savedir+'dw_online_bound.png',format='png', dpi=300)
-plt.savefig(savedir+'dw_online_bound.pdf',format='pdf', dpi=300)
+plt.savefig(savedir+'eta_tau_comparison.png',format='png', dpi=300)
+plt.savefig(savedir+'eta_tau_comparison.pdf',format='pdf', dpi=300)
 plt.close('all')
