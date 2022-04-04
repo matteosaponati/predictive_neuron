@@ -16,77 +16,140 @@ Author:
 """
 
 import torch
+import torch.nn as nn
 import numpy as np
-import argparse
 
-import train
+from predictive_neuron import models, funs
 
-parser = argparse.ArgumentParser(
+'----------------'
+def forward(par,neuron,x_data):
+    
+    v,z = [], []
+    
+    for t in range(par.T):            
+
+        v.append(neuron.v)              
+
+        if par.optimizer == 'online':            
+            with torch.no_grad():
+                neuron.backward_online(x_data[:,t])
+                neuron.update_online(par.hardbound)            
+
+        neuron(x_data[:,t])        
+        if neuron.z[0] != 0: z.append(t*par.dt)    
+        
+    return neuron, torch.stack(v,dim=1), z
+'----------------'
+
+'-------------------'
+def train(par):
+    
+    'fix seed'
+    torch.manual_seed(par.seed)
+    torch.cuda.manual_seed(par.seed)
+    np.random.seed(par.seed)
+    
+    'create input data'
+    timing = np.linspace(par.Dt,par.Dt*par.N,par.N)/par.dt
+    x_data = funs.get_sequence(par,timing)
+    
+    'set model'
+    neuron = models.NeuronClass(par)
+    loss = nn.MSELoss(reduction='sum')
+    
+    'initialization'
+    if par.init == 'trunc_gauss':
+        neuron.w = nn.Parameter(torch.empty(par.N)).to(par.device)
+        torch.nn.init.trunc_normal_(neuron.w, mean=0.05, std=.1/np.sqrt(par.N),
+                                    a=0.,b=.1)
+    if par.init == 'fixed':
+        neuron.w = nn.Parameter(par.w_0*torch.ones(par.N)).to(par.device)
+    
+    'optimizer'
+    if par.optimizer == 'Adam':
+        optimizer = torch.optim.Adam(neuron.parameters(),
+                                  lr=par.eta,betas=(.9,.999))
+    elif par.optimizer == 'SGD':
+        optimizer = torch.optim.SGD(neuron.parameters(),lr=par.eta)
+    
+    'allocate outputs'
+    loss_out = []
+    w = np.zeros((par.epochs,par.N))
+    v_out, spk_out = [], []
+
+    for e in range(par.epochs):
+            
+        neuron.state()
+        neuron, v, z = forward(par,neuron,x_data)
+        
+        'evaluate loss'
+        x_hat = torch.einsum("bt,j->btj",v,neuron.w)
+        E = .5*loss(x_hat,x_data)
+        if par.optimizer != "online":
+            optimizer.zero_grad()
+            E.backward()
+            optimizer.step()
+        
+        'output'
+        loss_out.append(E.item())
+        w[e,:] = neuron.w.detach().numpy()
+        v_out.append(v.detach().numpy())
+        spk_out.append(z)
+        
+        if e%50 == 0: 
+            print('epoch {} loss {}'.format(e,E.item()))
+    
+    return loss_out, w, v_out, spk_out
+'-------------------'
+
+
+if __name__ == '__main__':
+    
+    import argparse
+    parser = argparse.ArgumentParser(
                     description="""
                     single neuron trained on sequences
                     """
                     )
-
-'options'
-parser.add_argument('--online',type=str,default='False',
-                    help='train mode with online approx algorithm')
-parser.add_argument('--hardbound',type=str,default='False',
-                    help='set hard lower bound for parameters')
-
-'training algorithm'
-parser.add_argument('--optimizer',type=str, 
-                    choices=['SGD','Adam'],default='Adam',
-                    help='choice of optimizer')
-parser.add_argument('--l_rate',type=float, default=1e-3,
-                    help='learning rate')
-parser.add_argument('--epochs', type=int, default=400,
-                    help='number of epochs')
-parser.add_argument('--seed', type=int, default=1992)
-parser.add_argument('--batch', type=int, default=64,
-                    help='number of batches')   
-'architecture'
-parser.add_argument('--N', type=int, default=40) 
-parser.add_argument('--T', type=int, default=40) 
-'inputs'
-parser.add_argument('--Dt', type=int, default=2) 
-parser.add_argument('--noise',type=str,default='False',
-                    help='add noise for generalization')
-parser.add_argument('--distractor',type=str,default='False',
-                    help='add equal amount of distractors')
-parser.add_argument('--freq', type=int, default=5) 
-parser.add_argument('--jitter', type=int, default=2) 
-'neuronal model'
-parser.add_argument('--dt', type=float, default= .05) 
-parser.add_argument('--tau_m', type=float, default= 20.) 
-parser.add_argument('--v_th', type=float, default= 1.)
-parser.add_argument('--dtype', type=str, default=torch.float) 
-
-par = parser.parse_args()
-
-'additional parameters'
-par.device = "cuda" if torch.cuda.is_available() else "cpu"
-'input'
-par.tau_x = 2.
-par.freq = 0.
-par.jitt = 2.
-
-print("""
-      OPTIMIZATION on EPISODIC MEMORY TASK with LIF\t
-      eprop: {} ; n {}
-      eprop approximation: {}
-      tau_m: {} ms
-      iteration {}
-      """.format(par.eprop,par.n,par.eprop_approx,par.tau_m,par.rep))
-
-'train'
-accuracy, runtime, loss_class,loss_reg =  train.train(par)
-
-'-----------'
-
-print('saving')
-np.save('data/accuracy_tau_{}_eprop_{}_approx_{}_n_{}_rep_{}'.format(par.tau_m,par.eprop,par.eprop_approx,par.n,par.rep),accuracy)
-np.save('data/runtime_tau_{}_eprop_{}_approx_{}_n_{}_rep_{}'.format(par.tau_m,par.eprop,par.eprop_approx,par.n,par.rep),runtime)     
-np.save('data/loss_class_tau_{}_eprop_{}_approx_{}_n_{}_rep_{}'.format(par.tau_m,par.eprop,par.eprop_approx,par.n,par.rep),loss_class)  
-np.save('data/loss_reg_tau_{}_eprop_{}_approx_{}_n_{}_rep_{}'.format(par.tau_m,par.eprop,par.eprop_approx,par.n,par.rep),loss_reg)
-
-
+    'training algorithm'
+    parser.add_argument('--optimizer',type=str, 
+                        choices=['online','SGD','Adam'],default='Adam',
+                        help='choice of optimizer')
+    parser.add_argument('--hardbound',type=str,default='False',
+                        help='set hard lower bound for parameters')
+    parser.add_argument('--init',type=str, 
+                        choices=['classic','trunc_gauss','fixed'],default='fixed',
+                        help='type of weights initialization')
+    parser.add_argument('--w_0',type=float, default=.03,
+                        help='fixed initial condition')
+    parser.add_argument('--eta',type=float, default=1e-3,
+                        help='learning rate')
+    parser.add_argument('--epochs', type=int, default=400,
+                        help='number of epochs')
+    parser.add_argument('--seed', type=int, default=1992)
+    parser.add_argument('--batch', type=int, default=1,
+                        help='number of batches')   
+    'input sequence'
+    parser.add_argument('--Dt', type=int, default=4) 
+    parser.add_argument('--N', type=int, default=2) 
+    'neuron model'
+    parser.add_argument('--dt', type=float, default= .05) 
+    parser.add_argument('--tau_m', type=float, default= 10.) 
+    parser.add_argument('--v_th', type=float, default= 2.)
+    parser.add_argument('--dtype', type=str, default=torch.float) 
+    
+    par = parser.parse_args()
+    'additional parameters'
+    par.savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/sequences/'
+#    par.device = "cuda" if torch.cuda.is_available() else "cpu"
+    par.device = "cpu"
+    par.tau_x = 2.
+    par.T = int((2.+(par.Dt*par.N)+50) // par.dt)
+    
+    loss, w, v, spk = train(par)
+    
+    np.save(par.savedir+'loss',loss)
+    np.save(par.savedir+'w',w)
+    np.save(par.savedir+'v',v)
+    np.save(par.savedir+'spk',spk)
+    
