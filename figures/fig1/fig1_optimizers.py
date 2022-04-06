@@ -44,14 +44,13 @@ par.eta = 3e-5
 par.tau_m = 10.
 par.v_th = 2.5
 par.tau_x = 2.
-par.freq = 0
 
 'set inputs'
 timing = np.array([2.,6.])/par.dt
 x_data = funs.get_sequence(par,timing)
 
 '----------------'
-def num_solution(par,neuron,x_data,online=False,bound=False):
+def forward(par,neuron,x_data,online=False,bound=False):
     
     v,z = [], []
     
@@ -79,7 +78,7 @@ def train(par,neuron,x_data,online=False,bound=False):
     for e in range(par.epochs):
         
         neuron.state()
-        neuron, v, z = num_solution(par,neuron,x_data,online,bound)
+        neuron, v, z = forward(par,neuron,x_data,online,bound)
         'evaluate loss'
         x_hat = torch.einsum("bt,j->btj",v,neuron.w)
         E = .5*loss(x_hat,x_data)
@@ -91,7 +90,7 @@ def train(par,neuron,x_data,online=False,bound=False):
         E_out.append(E.item())
         w1.append(neuron.w[0].item())
         w2.append(neuron.w[1].item())
-        v_out.append(v)
+        v_out.append(v.detach().numpy())
         spk_out.append(z)
         if e%50 == 0: 
             print('epoch {} loss {}'.format(e,E.item()))
