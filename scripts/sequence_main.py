@@ -60,8 +60,8 @@ def train(par):
     'initialization'
     if par.init == 'trunc_gauss':
         neuron.w = nn.Parameter(torch.empty(par.N)).to(par.device)
-        torch.nn.init.trunc_normal_(neuron.w, mean=0.05, std=.1/np.sqrt(par.N),
-                                    a=0.,b=.1)
+        torch.nn.init.trunc_normal_(neuron.w, mean=par.init_mean, std=.1/np.sqrt(par.N),
+                                    a=par.init_a,b=par.init_b)
     if par.init == 'fixed':
         neuron.w = nn.Parameter(par.w_0*torch.ones(par.N)).to(par.device)
     
@@ -120,6 +120,9 @@ if __name__ == '__main__':
     parser.add_argument('--init',type=str, 
                         choices=['classic','trunc_gauss','fixed'],default='fixed',
                         help='type of weights initialization')
+    parser.add_argument('--init_mean',type=float, default=0.05)
+    parser.add_argument('--init_a',type=float, default=0.)
+    parser.add_argument('--init_b',type=float, default=.1)
     parser.add_argument('--w_0',type=float, default=.03,
                         help='fixed initial condition')
     parser.add_argument('--eta',type=float, default=1e-3,
