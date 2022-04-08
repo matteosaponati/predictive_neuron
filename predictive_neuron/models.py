@@ -103,6 +103,14 @@ class NeuronClass(nn.Module):
         else:
             self.w =  nn.Parameter(self.w - 
                                    self.par.eta*torch.mean(self.grad,dim=0))
+    
+    def update_stdp(self,x,z):
+        
+        ## compute difference between spk pre and spk post
+        ## compute the update for each synapse
+        ## compute the "gradient" for update
+        
+        return
         
     
 '------------------'
