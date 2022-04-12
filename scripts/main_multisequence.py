@@ -3,9 +3,9 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"pattern_main.py"
-predictive processes at the single neuron level - single neuron model
-trained on general input patterns
+"main_multisequence.py"
+single neuron trained on input sequences (spike volleys) with multiple
+subcomponents
 
 Author:
     
@@ -50,9 +50,13 @@ def train(par):
     np.random.seed(par.seed)
     
     'create input data'
-    timing = np.linspace(par.Dt,par.Dt*par.N,par.N)/par.dt
-    x_data = funs.get_sequence(par,timing)
-    
+    if par.spk_volley == 'deterministic':
+        timing = np.linspace(par.Dt,par.Dt*par.N,par.N)/par.dt
+        x_data = funs.get_sequence(par,timing)
+    if par.spk_volley == 'random':
+        timing = np.cumsum(np.random.randint(0,par.Dt,par.N))/par.dt
+        x_data = funs.get_sequence(par,timing)
+        
     'set model'
     neuron = models.NeuronClass(par)
     loss = nn.MSELoss(reduction='sum')
@@ -133,29 +137,24 @@ if __name__ == '__main__':
     parser.add_argument('--batch', type=int, default=1,
                         help='number of batches')   
     'input sequence'
-    parser.add_argument('--T', type=int, default=500,
-                        help='length of the simulation')
-    parser.add_argument('--freq', type=int, default=5,
-                        help='background firing rate [Hz]')
-    parser.add_argument('--T_pattern', type=int, default=50,
-                        help='length of the repeating pattern')
-    parser.add_argument('--freq_pattern', type=int, default=5,
-                        help='firing rate of the pattern [Hz]')
-    parser.add_argument('--N', type=int, default=2,
-                        help='input size') 
-
+    parser.add_argument('--spk_volley',type=str, 
+                        choices=['deterministic','random'],default='deterministic',
+                        help='type of spike volley')
+    parser.add_argument('--Dt', type=int, default=4) 
+    parser.add_argument('--N', type=int, default=2) 
     'neuron model'
     parser.add_argument('--dt', type=float, default= .05) 
     parser.add_argument('--tau_m', type=float, default= 10.) 
-    parser.add_argument('--v_th', type=float, default= 1.)
+    parser.add_argument('--v_th', type=float, default= 2.)
     parser.add_argument('--dtype', type=str, default=torch.float) 
     
     par = parser.parse_args()
     'additional parameters'
-    par.savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/patterns/'
+    par.savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/sequences/'
 #    par.device = "cuda" if torch.cuda.is_available() else "cpu"
     par.device = "cpu"
     par.tau_x = 2.
+    par.T = int((2.+(par.Dt*par.N)+10) // par.dt)
     
     loss, w, v, spk = train(par)
     
