@@ -85,31 +85,33 @@ par = types.SimpleNamespace()
 par.dt = .05
 par.eta = 1e-3
 par.tau_m = 10.
-par.v_th = 7.
+par.v_th = 1.5
 par.tau_x = 2.
 
 'architecture'
-par.N = 100
-par.T = int(100/par.dt)
-par.freq_pattern = .01
+par.N = 500
+par.spk_volley = 'random'
+par.Dt = 4.
+par.T = int((2*par.N) // par.dt)
 par.seed = 1992
 par.batch = 1
-par.epochs = 1000
+par.epochs = 500
 par.device = 'cpu'
 
 par.init = 'fixed'
-par.w_0 = .04
-
+par.w_0 = .05
+#
 #par.init = 'trunc_gauss'
 #par.init_mean = 1.
 #par.init_a = 0.
 #par.init_b = 2.
 
-par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/patterns/'
+par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/sequences/'
 
 #%%
 
-x_data, density = funs.get_pattern(par)
+timing = np.cumsum(np.random.randint(0,par.Dt,par.N))/par.dt
+x_data, density = funs.get_sequence(par,timing)
 
 """
 IMP:
@@ -119,70 +121,17 @@ IMP:
 """
 
 #%%
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.plot(np.array(density)/(par.N),linewidth=2,color='navy')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('time [ms]')
-plt.ylabel(r'fr [1/$\tau_m$]')
-plt.savefig(par.dir+'pattern_density.png',format='png', dpi=300)
-plt.close('all')
 
-#%%
-
-fig = plt.figure(figsize=(7,4), dpi=300)
 plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
-plt.xticks(np.arange(par.T)[::2000],np.linspace(0,par.T*par.dt,par.T)[::2000].round(0))
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('time [ms]')
-plt.ylabel('inputs')
-plt.savefig(par.dir+'pattern_unsorted.png',format='png', dpi=300)
-plt.close('all')
-
-x = x_data.clone().detach().numpy()
-order = np.zeros(par.N)
-
-for k in range(par.N):
-    if np.nonzero(x[0,:,k])[0] != []:
-        order[k] = np.nonzero(x[0,:,k])[0][0]
-        
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.pcolormesh(x[0,:,np.argsort(order)],cmap='Greys')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xticks(np.arange(par.T)[::500],np.linspace(0,par.T*par.dt,par.T)[::500].round(0))
-plt.xlabel('time [ms]')
-plt.ylabel('inputs')
-plt.savefig(par.dir+'pattern_sorted.png',format='png', dpi=300)
 
 #%%
-
 loss, w, v, spk = train(par,x_data)
-
-#%%
-
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.pcolormesh(w[:,np.argsort(order)].T,cmap='coolwarm')
-plt.colorbar()
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('epochs')
-plt.ylabel(r'$\vec{w}$')
-plt.savefig(par.dir+'w_sorted.png',format='png', dpi=300)
-
-fig = plt.figure(figsize=(6,5), dpi=300)
-for k,j in zip(spk,range(par.epochs)):
-    plt.scatter([j]*len(k),k,c='mediumvioletred',s=7)
-plt.xlabel(r'epochs')
-plt.xlim(0,par.epochs)
-plt.ylabel('spk times [ms]')
-plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig(par.dir+'spk.png',format='png', dpi=300)
-plt.close('all')
 
 #%%
 
 fig = plt.figure(figsize=(7,11), dpi=300)
 plt.subplot(3,1,1)
-plt.pcolormesh(x[0,:,np.argsort(order)],cmap='Greys')
+plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
 plt.xticks(np.arange(par.T)[::500],np.linspace(0,par.T*par.dt,par.T)[::500].astype(int))
 #for k in range(len(spk[-1])):
 #    plt.axvline(x = spk[-1][k]/par.dt,color='mediumvioletred')
@@ -197,7 +146,7 @@ plt.xlabel('time [ms]')
 plt.xlim(0,int(par.T*par.dt))
 plt.ylabel(r'fr [1/$\tau_m$]')
 plt.subplot(3,1,3)
-plt.pcolormesh(w[:,np.argsort(order)].T,cmap='coolwarm')
+plt.pcolormesh(w.T,cmap='coolwarm')
 plt.colorbar()
 plt.xlabel('epochs')
 plt.ylabel(r'$\vec{w}$')
@@ -205,30 +154,96 @@ fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(par.dir+'spk_density.png',format='png', dpi=300)
 plt.close('all')
 
+
+
+
+
+
+##########################################
+
 #%%
 
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.plot(w[-1,np.argsort(order)],color='navy')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-#plt.xlabel('epochs')
+'-------------------'    
+par = types.SimpleNamespace()
+
+'model parameters'
+par.dt = .05
+par.eta = 1e-3
+par.tau_m = 10.
+par.v_th = 2.
+par.tau_x = 2.
+
+'architecture'
+par.spk_volley = 'random'
+par.sequences = 5
+par.N_sequences = [10*k + np.arange(10,dtype=int) for k in range(par.sequences)]
+par.DT = int(10/par.dt)
+par.N = np.sum(10*par.sequences,dtype=int)
+par.Dt = 4.
+par.T = int(((par.Dt*par.N/par.dt)))
+par.seed = 1992
+par.batch = 1
+par.epochs = 1200
+par.device = 'cpu'
+
+par.init = 'fixed'
+par.w_0 = .04
+
+#par.init = 'trunc_gauss'
+#par.init_mean = 1.
+#par.init_a = 0.
+#par.init_b = 2.
+
+par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/sequences/'
+
+
+#%%
+
+timing = []
+for k  in range(par.sequences):
+    
+    timing.append(k*(par.Dt*len(par.N_sequences[k]))/par.dt + np.cumsum(np.random.randint(0,par.Dt,len(par.N_sequences[k]))/par.dt))
+
+
+#%%
+x_data, density = funs.get_multi_sequence(par,timing)
+
+#%%
+
+plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
+
+
+#%%
+loss, w, v, spk = train(par,x_data)
+
+
+#%%
+
+
+fig = plt.figure(figsize=(7,11), dpi=300)
+plt.subplot(3,1,1)
+plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
+plt.xticks(np.arange(par.T)[::500],np.linspace(0,par.T*par.dt,par.T)[::500].astype(int))
+#for k in range(len(spk[-1])):
+#    plt.axvline(x = spk[-1][k]/par.dt,color='mediumvioletred')
+plt.xlabel('time [ms]')
+plt.xlim(0,par.T)
+plt.ylabel('inputs')
+plt.subplot(3,1,2)
+plt.plot(np.array(density)/(par.N),linewidth=2,color='navy')
+for k in range(len(spk[-1])):
+    plt.axvline(x = spk[-1][k],color='mediumvioletred')
+plt.xlabel('time [ms]')
+plt.xlim(0,int(par.T*par.dt))
+plt.ylabel(r'fr [1/$\tau_m$]')
+plt.subplot(3,1,3)
+plt.pcolormesh(w.T,cmap='coolwarm')
+plt.colorbar()
+plt.xlabel('epochs')
 plt.ylabel(r'$\vec{w}$')
-plt.savefig(par.dir+'w_final.png',format='png', dpi=300)
-
-#%%
-import seaborn as sns
-from scipy import stats
-
-sns.distplot(w[-1,:],fit=stats.lognorm,color='navy')
-
-
-#%%
-fig = plt.figure(figsize=(6,4), dpi=300)
-sns.distplot(w[-1,:],fit=stats.lognorm,color='navy')
-#plt.xscale('log')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('count')
-plt.xlabel(r'w')
-plt.savefig(par.dir+'w_hist.png',format='png', dpi=300)
+plt.savefig(par.dir+'spk_density.png',format='png', dpi=300)
+plt.close('all')
 
 
 #%%
@@ -242,4 +257,3 @@ plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(par.dir+'spk.png',format='png', dpi=300)
 plt.close('all')
-

@@ -77,7 +77,9 @@ def train(par,x_data):
     
     return loss_out, w, v_out, spk_out
 
+
 #%%
+    
 '-------------------'    
 par = types.SimpleNamespace()
 
@@ -85,16 +87,20 @@ par = types.SimpleNamespace()
 par.dt = .05
 par.eta = 1e-3
 par.tau_m = 10.
-par.v_th = 7.
+par.v_th = 2.
 par.tau_x = 2.
 
 'architecture'
-par.N = 100
-par.T = int(100/par.dt)
-par.freq_pattern = .01
+par.patterns = 2
+par.N_patterns = 4*np.ones(par.patterns,dtype=int)
+par.T_patterns = (50*np.ones(par.patterns)/par.dt).astype(int)
+par.DT = int(10/par.dt)
+par.freqs = .05*np.ones(par.patterns)
+par.N = np.sum(par.N_patterns,dtype=int)
+par.T = (np.sum(par.T_patterns) + par.DT).astype(int)
 par.seed = 1992
 par.batch = 1
-par.epochs = 1000
+par.epochs = 600
 par.device = 'cpu'
 
 par.init = 'fixed'
@@ -109,7 +115,8 @@ par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/patterns/'
 
 #%%
 
-x_data, density = funs.get_pattern(par)
+x_data, density = funs.get_multi_pattern(par)
+
 
 """
 IMP:
@@ -118,7 +125,6 @@ IMP:
     - show how this can depend on neuronal parameters
 """
 
-#%%
 fig = plt.figure(figsize=(7,4), dpi=300)
 plt.plot(np.array(density)/(par.N),linewidth=2,color='navy')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
@@ -138,6 +144,8 @@ plt.ylabel('inputs')
 plt.savefig(par.dir+'pattern_unsorted.png',format='png', dpi=300)
 plt.close('all')
 
+#%%
+
 x = x_data.clone().detach().numpy()
 order = np.zeros(par.N)
 
@@ -154,29 +162,8 @@ plt.ylabel('inputs')
 plt.savefig(par.dir+'pattern_sorted.png',format='png', dpi=300)
 
 #%%
-
 loss, w, v, spk = train(par,x_data)
 
-#%%
-
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.pcolormesh(w[:,np.argsort(order)].T,cmap='coolwarm')
-plt.colorbar()
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('epochs')
-plt.ylabel(r'$\vec{w}$')
-plt.savefig(par.dir+'w_sorted.png',format='png', dpi=300)
-
-fig = plt.figure(figsize=(6,5), dpi=300)
-for k,j in zip(spk,range(par.epochs)):
-    plt.scatter([j]*len(k),k,c='mediumvioletred',s=7)
-plt.xlabel(r'epochs')
-plt.xlim(0,par.epochs)
-plt.ylabel('spk times [ms]')
-plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig(par.dir+'spk.png',format='png', dpi=300)
-plt.close('all')
 
 #%%
 
@@ -205,33 +192,9 @@ fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(par.dir+'spk_density.png',format='png', dpi=300)
 plt.close('all')
 
-#%%
-
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.plot(w[-1,np.argsort(order)],color='navy')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-#plt.xlabel('epochs')
-plt.ylabel(r'$\vec{w}$')
-plt.savefig(par.dir+'w_final.png',format='png', dpi=300)
 
 #%%
-import seaborn as sns
-from scipy import stats
 
-sns.distplot(w[-1,:],fit=stats.lognorm,color='navy')
-
-
-#%%
-fig = plt.figure(figsize=(6,4), dpi=300)
-sns.distplot(w[-1,:],fit=stats.lognorm,color='navy')
-#plt.xscale('log')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('count')
-plt.xlabel(r'w')
-plt.savefig(par.dir+'w_hist.png',format='png', dpi=300)
-
-
-#%%
 fig = plt.figure(figsize=(6,5), dpi=300)
 for k,j in zip(spk,range(par.epochs)):
     plt.scatter([j]*len(k),k,c='mediumvioletred',s=7)
@@ -242,4 +205,3 @@ plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(par.dir+'spk.png',format='png', dpi=300)
 plt.close('all')
-

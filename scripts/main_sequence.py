@@ -51,10 +51,9 @@ def train(par):
     'create input data'
     if par.spk_volley == 'deterministic':
         timing = np.linspace(par.Dt,par.Dt*par.N,par.N)/par.dt
-        x_data = funs.get_sequence(par,timing)
     if par.spk_volley == 'random':
         timing = np.cumsum(np.random.randint(0,par.Dt,par.N))/par.dt
-        x_data = funs.get_sequence(par,timing)
+    x_data, density = funs.get_sequence(par,timing)
         
     'set model'
     neuron = models.NeuronClass(par)
@@ -123,9 +122,9 @@ if __name__ == '__main__':
     parser.add_argument('--init',type=str, 
                         choices=['classic','trunc_gauss','fixed'],default='fixed',
                         help='type of weights initialization')
-    parser.add_argument('--init_mean',type=float, default=0.05)
+    parser.add_argument('--init_mean',type=float, default=0.2)
     parser.add_argument('--init_a',type=float, default=0.)
-    parser.add_argument('--init_b',type=float, default=.1)
+    parser.add_argument('--init_b',type=float, default=.4)
     parser.add_argument('--w_0',type=float, default=.03,
                         help='fixed initial condition')
     parser.add_argument('--eta',type=float, default=1e-3,
@@ -134,10 +133,11 @@ if __name__ == '__main__':
                         help='number of epochs')
     parser.add_argument('--seed', type=int, default=1992)
     parser.add_argument('--batch', type=int, default=1,
-                        help='number of batches')   
+                        help='number of batches')
+    parser.add_argument('--rep', type=int, default=1)   
     'input sequence'
     parser.add_argument('--spk_volley',type=str, 
-                        choices=['deterministic','random'],default='deterministic',
+                        choices=['deterministic','random'],default='random',
                         help='type of spike volley')
     parser.add_argument('--Dt', type=int, default=4) 
     parser.add_argument('--N', type=int, default=2) 
@@ -149,16 +149,16 @@ if __name__ == '__main__':
     
     par = parser.parse_args()
     'additional parameters'
-    par.savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/sequences/'
+    par.savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/fig2/'
 #    par.device = "cuda" if torch.cuda.is_available() else "cpu"
     par.device = "cpu"
     par.tau_x = 2.
-    par.T = int((2.+(par.Dt*par.N)+10) // par.dt)
+    par.T = int((par.Dt*par.N)/(2*par.dt))
     
     loss, w, v, spk = train(par)
     
-    np.save(par.savedir+'loss',loss)
-    np.save(par.savedir+'w',w)
-    np.save(par.savedir+'v',v)
-    np.save(par.savedir+'spk',spk)
+    np.save(par.savedir+'loss_N_{}_rep_{}'.format(par.N,par.rep),loss)
+    np.save(par.savedir+'w_N_{}_rep_{}'.format(par.N,par.rep),w)
+    np.save(par.savedir+'v_N_{}_rep_{}'.format(par.N,par.rep),v)
+    np.save(par.savedir+'spk_N_{}_rep_{}'.format(par.N,par.rep),spk)
     

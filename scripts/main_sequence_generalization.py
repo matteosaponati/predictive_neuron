@@ -3,9 +3,9 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"main_multisequence.py"
-single neuron trained on input sequences (spike volleys) with multiple
-subcomponents
+"main_sequence_generalization.py"
+single neuron trained on input sequences (spike volleys)
+robustness test on noisy source in the input
 
 Author:
     
@@ -50,20 +50,12 @@ def train(par):
     np.random.seed(par.seed)
     
     'create input data'
-    timing = []
-    for k  in range(par.sequences):
+    if par.spk_volley == 'deterministic':
+        timing = np.linspace(par.Dt,par.Dt*par.N,par.N)/par.dt
+    if par.spk_volley == 'random':
+        timing = np.cumsum(np.random.randint(0,par.Dt,par.N))/par.dt
+    x_data, density = funs.get_sequence(par,timing)
         
-        if par.spk_volley == 'deterministic':
-            sequence = np.linspace(par.Dt,par.Dt*par.N_sequences[k],
-                                     par.N_sequences[k])
-        if par.spk_volley == 'random':
-            sequence = np.cumsum(np.random.randint(0,par.Dt,
-                                               len(par.N_sequences[k])))
-        timing.append(k*(par.Dt*len(par.N_sequences[k]))/par.dt + 
-                      sequence/par.dt)
-    
-    x_data, density = funs.get_multi_sequence(par,timing)
-    
     'set model'
     neuron = models.NeuronClass(par)
     loss = nn.MSELoss(reduction='sum')
@@ -131,9 +123,9 @@ if __name__ == '__main__':
     parser.add_argument('--init',type=str, 
                         choices=['classic','trunc_gauss','fixed'],default='fixed',
                         help='type of weights initialization')
-    parser.add_argument('--init_mean',type=float, default=0.05)
+    parser.add_argument('--init_mean',type=float, default=0.2)
     parser.add_argument('--init_a',type=float, default=0.)
-    parser.add_argument('--init_b',type=float, default=.1)
+    parser.add_argument('--init_b',type=float, default=.4)
     parser.add_argument('--w_0',type=float, default=.03,
                         help='fixed initial condition')
     parser.add_argument('--eta',type=float, default=1e-3,
@@ -142,20 +134,14 @@ if __name__ == '__main__':
                         help='number of epochs')
     parser.add_argument('--seed', type=int, default=1992)
     parser.add_argument('--batch', type=int, default=1,
-                        help='number of batches')   
+                        help='number of batches')
+    parser.add_argument('--rep', type=int, default=1)   
     'input sequence'
     parser.add_argument('--spk_volley',type=str, 
-                        choices=['deterministic','random'],default='deterministic',
+                        choices=['deterministic','random'],default='random',
                         help='type of spike volley')
-    parser.add_argument('--sequences', type=int, default=2,
-                        help = 'number of sub-sequences') 
-    parser.add_argument('--N_sub', type=int, default=2,
-                        help='number of input in subsequence')
-    parser.add_argument('--Dt', type=int, default=4,
-                        help='latency between inputs in sequence')
-    parser.add_argument('--DT', type=int, default=10,
-                        help='delay between subsequences') 
-    
+    parser.add_argument('--Dt', type=int, default=4) 
+    parser.add_argument('--N', type=int, default=2) 
     'neuron model'
     parser.add_argument('--dt', type=float, default= .05) 
     parser.add_argument('--tau_m', type=float, default= 10.) 
@@ -163,22 +149,17 @@ if __name__ == '__main__':
     parser.add_argument('--dtype', type=str, default=torch.float) 
     
     par = parser.parse_args()
-    
     'additional parameters'
-    par.savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/sequences/'
+    par.savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/fig2/'
 #    par.device = "cuda" if torch.cuda.is_available() else "cpu"
     par.device = "cpu"
     par.tau_x = 2.
-    
-    par.N_sequences = [par.N_sub*k + np.arange(par.N_sub,dtype=int) for k in range(par.sequences)]
-    par.N = np.sum(par.N_sub*par.sequences,dtype=int)
-    par.T = int(((par.Dt*par.N/par.dt)))
-    par.DT = int(par.DT/par.dt)
+    par.T = int((par.Dt*par.N)/(2*par.dt))
     
     loss, w, v, spk = train(par)
     
-    np.save(par.savedir+'loss_seq_{}_N_{}_vth_{}_tau_{}'.format(par.sequences,par.N_sub,par.v_th,par.tau_m),loss)
-    np.save(par.savedir+'w_seq_{}_N_{}_vth_{}_tau_{}'.format(par.sequences,par.N_sub,par.v_th,par.tau_m),w)
-    np.save(par.savedir+'v_seq_{}_N_{}_vth_{}_tau_{}'.format(par.sequences,par.N_sub,par.v_th,par.tau_m),v)
-    np.save(par.savedir+'spk_seq_{}_N_{}_vth_{}_tau_{}'.format(par.sequences,par.N_sub,par.v_th,par.tau_m),spk)
+    np.save(par.savedir+'loss_N_{}_rep_{}'.format(par.N,par.rep),loss)
+    np.save(par.savedir+'w_N_{}_rep_{}'.format(par.N,par.rep),w)
+    np.save(par.savedir+'v_N_{}_rep_{}'.format(par.N,par.rep),v)
+    np.save(par.savedir+'spk_N_{}_rep_{}'.format(par.N,par.rep),spk)
     
