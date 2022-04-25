@@ -85,31 +85,31 @@ par = types.SimpleNamespace()
 par.dt = .05
 par.eta = 1e-3
 par.tau_m = 10.
-par.v_th = 7.
+par.v_th = 2.
 par.tau_x = 2.
 
 'architecture'
-par.N = 100
-par.T = int(100/par.dt)
+par.N = 50
+par.T = int(50/par.dt)
 par.freq_pattern = .01
 par.seed = 1992
 par.batch = 1
-par.epochs = 1000
+par.epochs = 20000
 par.device = 'cpu'
 
 par.init = 'fixed'
 par.w_0 = .04
 
-#par.init = 'trunc_gauss'
-#par.init_mean = 1.
-#par.init_a = 0.
-#par.init_b = 2.
+par.init = 'trunc_gauss'
+par.init_mean = 1.
+par.init_a = 0.
+par.init_b = 2.
 
 par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/patterns/'
 
 #%%
 
-x_data, density = funs.get_pattern(par)
+x_data, density = funs.get_pattern_fixed(par)
 
 """
 IMP:
@@ -140,6 +140,8 @@ plt.close('all')
 
 x = x_data.clone().detach().numpy()
 order = np.zeros(par.N)
+
+#%%
 
 for k in range(par.N):
     if np.nonzero(x[0,:,k])[0] != []:

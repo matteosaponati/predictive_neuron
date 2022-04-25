@@ -89,17 +89,17 @@ par.v_th = 1.5
 par.tau_x = 2.
 
 'architecture'
-par.N = 500
+par.N = 100
 par.spk_volley = 'random'
 par.Dt = 4.
 par.T = int((2*par.N) // par.dt)
 par.seed = 1992
 par.batch = 1
-par.epochs = 500
+par.epochs = 1500
 par.device = 'cpu'
 
 par.init = 'fixed'
-par.w_0 = .05
+par.w_0 = .03
 #
 #par.init = 'trunc_gauss'
 #par.init_mean = 1.
