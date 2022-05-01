@@ -110,7 +110,7 @@ def stdp_window(delay,par,w_0_pre,w_0_post):
 
 #%%
 
-delay = np.arange(4.,60,.05)
+delay = np.arange(4.,60,10.)
 
 w_0_pre = torch.Tensor([.001,.11])
 w_0_post = torch.Tensor([.11,.001])
