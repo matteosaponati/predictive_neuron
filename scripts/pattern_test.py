@@ -89,21 +89,21 @@ par.v_th = 2.
 par.tau_x = 2.
 
 'architecture'
-par.N = 50
+par.N = 500
 par.T = int(50/par.dt)
 par.freq_pattern = .01
 par.seed = 1992
 par.batch = 1
-par.epochs = 20000
+par.epochs = 2000
 par.device = 'cpu'
 
 par.init = 'fixed'
 par.w_0 = .04
 
 par.init = 'trunc_gauss'
-par.init_mean = 1.
+par.init_mean = .2
 par.init_a = 0.
-par.init_b = 2.
+par.init_b = 4.
 
 par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/patterns/'
 

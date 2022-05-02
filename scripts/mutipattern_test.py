@@ -87,15 +87,15 @@ par = types.SimpleNamespace()
 par.dt = .05
 par.eta = 1e-3
 par.tau_m = 10.
-par.v_th = 2.
+par.v_th = 1.5
 par.tau_x = 2.
 
 'architecture'
 par.patterns = 2
-par.N_patterns = 4*np.ones(par.patterns,dtype=int)
-par.T_patterns = (50*np.ones(par.patterns)/par.dt).astype(int)
-par.DT = int(10/par.dt)
-par.freqs = .05*np.ones(par.patterns)
+par.N_patterns = 25*np.ones(par.patterns,dtype=int)
+par.T_patterns = (20*np.ones(par.patterns)/par.dt).astype(int)
+par.DT = int(20/par.dt)
+par.freqs = .01*np.ones(par.patterns)
 par.N = np.sum(par.N_patterns,dtype=int)
 par.T = (np.sum(par.T_patterns) + par.DT).astype(int)
 par.seed = 1992
@@ -115,7 +115,7 @@ par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/patterns/'
 
 #%%
 
-x_data, density = funs.get_multi_pattern(par)
+x_data, density = funs.get_multi_pattern_fixed(par)
 
 
 """
@@ -153,7 +153,7 @@ for k in range(par.N):
     if np.nonzero(x[0,:,k])[0] != []:
         order[k] = np.nonzero(x[0,:,k])[0][0]
         
-fig = plt.figure(figsize=(7,4), dpi=300)
+fig = plt.figure(figsize=(4,5), dpi=300)
 plt.pcolormesh(x[0,:,np.argsort(order)],cmap='Greys')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xticks(np.arange(par.T)[::500],np.linspace(0,par.T*par.dt,par.T)[::500].round(0))
