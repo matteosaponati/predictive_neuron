@@ -90,20 +90,20 @@ par.tau_x = 2.
 
 'architecture'
 par.N = 500
-par.T = int(50/par.dt)
+par.T = int(100/par.dt)
 par.freq_pattern = .01
 par.seed = 1992
 par.batch = 1
-par.epochs = 2000
+par.epochs = 10000
 par.device = 'cpu'
 
 par.init = 'fixed'
 par.w_0 = .04
 
 par.init = 'trunc_gauss'
-par.init_mean = .2
+par.init_mean = .1
 par.init_a = 0.
-par.init_b = 4.
+par.init_b = .2
 
 par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/patterns/'
 
@@ -160,16 +160,64 @@ plt.savefig(par.dir+'pattern_sorted.png',format='png', dpi=300)
 loss, w, v, spk = train(par,x_data)
 
 #%%
+"""
+GOOD PLOTS
+"""
+import matplotlib.colors as colors
+class MidpointNormalize(colors.Normalize):
+	def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
+		self.midpoint = midpoint
+		colors.Normalize.__init__(self, vmin, vmax, clip)
+	def __call__(self, value, clip=None):
+		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.pcolormesh(w[:,np.argsort(order)].T,cmap='coolwarm')
+savedir = '/mnt/gs/home/saponatim/'
+
+
+fig = plt.figure(figsize=(5,6), dpi=300)
+plt.pcolormesh(np.linspace(0,par.T*par.dt,par.T),np.arange(par.N),x_data[0,:,:].T,cmap='Greys')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.xlabel('time [ms]')
+plt.ylabel('inputs')
+plt.savefig(savedir+'pattern_unsorted.png',format='png', dpi=300)
+plt.close('all')
+
+fig = plt.figure(figsize=(5,6), dpi=300)
+plt.pcolormesh(np.linspace(0,par.T*par.dt,par.T),np.arange(par.N),x_data[0,:,np.argsort(order)].T,cmap='Greys')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.xlabel('time [ms]')
+plt.ylabel('inputs (sorted)')
+plt.savefig(savedir+'pattern_sorted.png',format='png', dpi=300)
+plt.close('all')
+
+fig = plt.figure(figsize=(5,6), dpi=300)
+for k,j in zip(spk,range(par.epochs)):
+    plt.scatter([j]*len(k),k,edgecolor='royalblue',facecolor='none',s=7)
+plt.xlabel(r'epochs')
+plt.xlim(0,par.epochs)
+plt.ylabel('spk times [ms]')
+plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(savedir+'spk.png',format='png', dpi=300)
+plt.close('all')
+
+
+
+
+x = x_data.clone().detach().numpy()
+order = np.zeros(par.N)
+
+fig = plt.figure(figsize=(5,6), dpi=300)
+plt.title(r'$\vec{w}$')
+plt.pcolormesh(w[:,np.argsort(order)].T,cmap='RdBu_r',norm=MidpointNormalize(midpoint=0))
 plt.colorbar()
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel('epochs')
-plt.ylabel(r'$\vec{w}$')
-plt.savefig(par.dir+'w_sorted.png',format='png', dpi=300)
+plt.ylabel(r'inputs (sorted)')
+plt.savefig(savedir+'w_sorted.png',format='png', dpi=300)
 
-fig = plt.figure(figsize=(6,5), dpi=300)
+fig = plt.figure(figsize=(5,6), dpi=300)
 for k,j in zip(spk,range(par.epochs)):
     plt.scatter([j]*len(k),k,c='mediumvioletred',s=7)
 plt.xlabel(r'epochs')

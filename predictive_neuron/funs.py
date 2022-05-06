@@ -62,6 +62,21 @@ def get_sequence_noise(par,timing,mu=None,jitter=None):
     
     return x_data.permute(0,2,1)
 
+def get_sequence_stdp(par,timing):
+    
+    x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)    
+    for k in range(par.N):
+        x_data[:,timing[k],k]= 1
+    density = get_pattern_density(par,x_data)
+    
+    'synaptic time constant'
+    filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+    x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
+                         padding=par.T,groups=par.N)[:,:,1:par.T+1]
+
+    return x_data.permute(0,2,1), density
+
 def get_multi_sequence(par,timing):
     
     'create sequence'    

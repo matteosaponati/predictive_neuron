@@ -45,6 +45,7 @@ class NeuronClass(nn.Module):
         torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.N))
         
     def state(self):
+        """initialization of neuron state"""
         
         self.v = torch.zeros(self.par.batch).to(self.par.device)
         self.z = torch.zeros(self.par.batch).to(self.par.device)
@@ -53,6 +54,7 @@ class NeuronClass(nn.Module):
         self.grad = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
         
     def __call__(self,x):
+        """recursive dynamics step, numerical solution"""
         
         self.v = self.alpha*self.v + x@self.w \
                     - self.par.v_th*self.z.detach()

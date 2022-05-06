@@ -32,7 +32,6 @@ def train(par,x_data):
     torch.cuda.manual_seed(par.seed)
     np.random.seed(par.seed)
     
-    
     'set model'
     neuron = models.NeuronClass(par)
     loss = nn.MSELoss(reduction='sum')
@@ -77,98 +76,85 @@ def train(par,x_data):
     
     return loss_out, w, v_out, spk_out
 
-
 #%%
-    
 '-------------------'    
 par = types.SimpleNamespace()
 
+'architecture'
+par.N = 2
+par.T = 200
+par.batch = 1
+par.epochs = 500
+par.device = 'cpu'
+par.seed = 1992
+
 'model parameters'
-par.dt = .05
+par.dt = 1.
 par.eta = 1e-3
 par.tau_m = 10.
-par.v_th = 1.5
+par.v_th = 10.
 par.tau_x = 2.
 
-'architecture'
-par.patterns = 5
-par.N_patterns = 10*np.ones(par.patterns,dtype=int)
-par.T_patterns = (20*np.ones(par.patterns)/par.dt).astype(int)
-par.DT = int(20/par.dt)
-par.freqs = .01*np.ones(par.patterns)
-par.N = np.sum(par.N_patterns,dtype=int)
-par.T = (np.sum(par.T_patterns) + par.patterns*par.DT).astype(int)
-par.seed = 1992
-par.batch = 1
-par.epochs = 1000
-par.device = 'cpu'
+'set inputs'
+timing = np.array([2.,6.])/par.dt
+x_data, density = funs.get_sequence(par,timing)
 
 par.init = 'fixed'
-par.w_0 = .04
+par.w_0 = .03
 
-#par.init = 'trunc_gauss'
-#par.init_mean = 1.
-#par.init_a = 0.
-#par.init_b = 2.
-
-par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/patterns/'
+par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/sequences/'
 
 #%%
 
-x_data, density = funs.get_multi_pattern_fixed(par)
-
-
-"""
-IMP:
-    - compute density of pattern and density of noise
-    - show the effect of the two components on learning the sequence
-    - show how this can depend on neuronal parameters
-"""
-
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.plot(np.array(density)/(par.N),linewidth=2,color='navy')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('time [ms]')
-plt.ylabel(r'fr [1/$\tau_m$]')
-plt.savefig(par.dir+'pattern_density.png',format='png', dpi=300)
-plt.close('all')
-
-#%%
-
-fig = plt.figure(figsize=(7,4), dpi=300)
-plt.pcolormesh(np.linspace(0,par.T*par.dt,par.T),np.arange(par.N),x_data[0,:,:].T,cmap='Greys')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('time [ms]')
-plt.ylabel('inputs')
-plt.savefig(par.dir+'pattern_unsorted.png',format='png', dpi=300)
-plt.close('all')
-
-#%%
-
-x = x_data.clone().detach().numpy()
-order = np.zeros(par.N)
-
-for k in range(par.N):
-    if np.nonzero(x[0,:,k])[0] != []:
-        order[k] = np.nonzero(x[0,:,k])[0][0]
-        
-fig = plt.figure(figsize=(4,5), dpi=300)
-plt.pcolormesh(x[0,:,np.argsort(order)],cmap='Greys')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xticks(np.arange(par.T)[::500],np.linspace(0,par.T*par.dt,par.T)[::500].round(0))
-plt.xlabel('time [ms]')
-plt.ylabel('inputs')
-plt.savefig(par.dir+'pattern_sorted.png',format='png', dpi=300)
+plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
 
 #%%
 loss, w, v, spk = train(par,x_data)
 
 
 #%%
+x_01 = x_data[0][:,0].detach().numpy().copy()
+#%%
+x_05 = x_data[0][:,0].detach().numpy().copy()
+#%%
+x_1 = x_data[0][:,0].detach().numpy().copy()
+
+#%%
+
+w_01 = w.copy()
+
+v_01 = v[0][0,:].copy()
+
+
+#%%
+
+w_05 = w.copy()
+
+v_05 = v[0][0,:].copy()
+
+#%%
+
+w_1 = w.copy()
+
+v_1 = v[0][0,:].copy()
+
+
+#%%
+
+
+plt.plot(v_01)
+plt.plot(v_05)
+plt.plot(v_1)
+
+plt.plot(x_01)
+plt.plot(x_05)
+plt.plot(x_1)
+
+#%%
 
 fig = plt.figure(figsize=(7,11), dpi=300)
 plt.subplot(3,1,1)
-plt.pcolormesh(x[0,:,np.argsort(order)],cmap='Greys')
+plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
 plt.xticks(np.arange(par.T)[::500],np.linspace(0,par.T*par.dt,par.T)[::500].astype(int))
 #for k in range(len(spk[-1])):
 #    plt.axvline(x = spk[-1][k]/par.dt,color='mediumvioletred')
@@ -183,7 +169,7 @@ plt.xlabel('time [ms]')
 plt.xlim(0,int(par.T*par.dt))
 plt.ylabel(r'fr [1/$\tau_m$]')
 plt.subplot(3,1,3)
-plt.pcolormesh(w[:,np.argsort(order)].T,cmap='coolwarm')
+plt.pcolormesh(w.T,cmap='coolwarm')
 plt.colorbar()
 plt.xlabel('epochs')
 plt.ylabel(r'$\vec{w}$')
@@ -200,7 +186,106 @@ for k,j in zip(spk,range(par.epochs)):
 plt.xlabel(r'epochs')
 plt.xlim(0,par.epochs)
 plt.ylabel('spk times [ms]')
+plt.ylim(0,10)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(par.dir+'spk.png',format='png', dpi=300)
 plt.close('all')
+
+
+
+
+##########################################
+
+#%%
+'-------------------'    
+par = types.SimpleNamespace()
+
+'model parameters'
+par.dt = .5
+par.eta = 1e-3
+par.tau_m = 10.
+par.v_th = .5
+par.tau_x = 2.
+
+'architecture'
+par.N = 500
+par.spk_volley = 'random'
+par.Dt = 4.
+par.T = int((2*par.N) // par.dt)
+par.seed = 1992
+par.batch = 1
+par.epochs = 1000
+par.device = 'cpu'
+
+par.init = 'fixed'
+par.w_0 = .03
+
+#par.init = 'trunc_gauss'
+#par.init_mean = .05
+#par.init_a = 0.
+#par.init_b = .1
+
+par.dir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/sequences/'
+
+#%%
+
+timing = np.cumsum(np.random.randint(0,par.Dt,par.N))/par.dt
+x_data, density = funs.get_sequence(par,timing)
+
+"""
+IMP:
+    - compute density of pattern and density of noise
+    - show the effect of the two components on learning the sequence
+    - show how this can depend on neuronal parameters
+"""
+
+#%%
+
+plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
+
+#%%
+loss, w, v, spk = train(par,x_data)
+
+#%%
+
+fig = plt.figure(figsize=(7,11), dpi=300)
+plt.subplot(3,1,1)
+plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
+plt.xticks(np.arange(par.T)[::500],np.linspace(0,par.T*par.dt,par.T)[::500].astype(int))
+#for k in range(len(spk[-1])):
+#    plt.axvline(x = spk[-1][k]/par.dt,color='mediumvioletred')
+plt.xlabel('time [ms]')
+plt.xlim(0,par.T)
+plt.ylabel('inputs')
+plt.subplot(3,1,2)
+plt.plot(np.array(density)/(par.N),linewidth=2,color='navy')
+for k in range(len(spk[-1])):
+    plt.axvline(x = spk[-1][k],color='mediumvioletred')
+plt.xlabel('time [ms]')
+plt.xlim(0,int(par.T*par.dt))
+plt.ylabel(r'fr [1/$\tau_m$]')
+plt.subplot(3,1,3)
+plt.pcolormesh(w.T,cmap='coolwarm')
+plt.colorbar()
+plt.xlabel('epochs')
+plt.ylabel(r'$\vec{w}$')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(par.dir+'spk_density.png',format='png', dpi=300)
+plt.close('all')
+
+#%%
+fig = plt.figure(figsize=(6,5), dpi=300)
+for k,j in zip(spk,range(par.epochs)):
+    plt.scatter([j]*len(k),k,c='mediumvioletred',s=7)
+plt.xlabel(r'epochs')
+plt.xlim(0,1000)
+plt.ylabel('spk times [ms]')
+plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(par.dir+'spk.png',format='png', dpi=300)
+plt.close('all')
+
+
+
+

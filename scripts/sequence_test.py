@@ -199,29 +199,43 @@ class MidpointNormalize(colors.Normalize):
 
 savedir = '/mnt/gs/home/saponatim/'
 
-
-fig = plt.figure(figsize=(4,5), dpi=300)
-plt.pcolormesh(x_data[0,:,:].T,cmap='Greys')
-plt.xticks(np.arange(par.T)[::1000],np.linspace(0,par.T*par.dt,par.T)[::1000].astype(int))
-plt.xlabel('time [ms]')
-plt.xlim(0,3200)
-plt.ylabel('inputs')
+#%%
+fig = plt.figure(figsize=(5,6), dpi=300)
+plt.pcolormesh(np.linspace(0,par.T*par.dt,par.T),np.arange(par.N),x_data[0,:,:].T,cmap='Greys')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig(savedir+'spk_volley.png',format='png', dpi=300)
+plt.xlabel('time [ms]')
+plt.xlim(0,200)
+plt.ylabel('inputs')
+#plt.savefig(savedir+'spk_volley.png',format='png', dpi=300)
+#plt.savefig(savedir+'spk_volley.pdf',format='pdf', dpi=300)
+plt.savefig(savedir+'spk_volley.svg',format='svg', dpi=300)
 plt.close('all')
 
-fig = plt.figure(figsize=(4,5), dpi=300)    
-plt.title(r'$\vec{w}/\vec{w}_0$')
-plt.pcolormesh(w.T/par.w_0,cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
+#%%
+'compute fr'
+
+bins, bin = int(par.T*par.dt/par.tau_m), int(par.tau_m/par.dt)
+fr = []
+for k in range(bins):
+    spk_sum = len(np.where(np.logical_and(timing>k*bin,timing<(k+1)*bin))[0])
+    
+    fr.append((spk_sum*(1e3/par.tau_m))/par.N)
+
+
+#%%
+
+fig = plt.figure(figsize=(5,6), dpi=300)    
+plt.title(r'$\vec{w}$')
+plt.pcolormesh(w.T,cmap='RdBu_r',norm=MidpointNormalize(midpoint=0))
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.colorbar()
 plt.ylabel('inputs')
 plt.xlabel(r'epochs')
 plt.xlim(0,2000)
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(savedir+'w_spk_volley.png',format='png', dpi=300)
 plt.close('all')
 
-fig = plt.figure(figsize=(4,5), dpi=300)
+fig = plt.figure(figsize=(5,6), dpi=300)
 for k,j in zip(spk,range(par.epochs)):
     plt.scatter([j]*len(k),k,edgecolor='royalblue',facecolor='none',s=7)
 plt.xlabel(r'epochs')
