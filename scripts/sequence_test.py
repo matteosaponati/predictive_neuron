@@ -32,7 +32,6 @@ def train(par,x_data):
     torch.cuda.manual_seed(par.seed)
     np.random.seed(par.seed)
     
-    
     'set model'
     neuron = models.NeuronClass(par)
     loss = nn.MSELoss(reduction='sum')
