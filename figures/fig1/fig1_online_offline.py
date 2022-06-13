@@ -45,15 +45,20 @@ par.v_th = 2.5
 par.tau_x = 2.
 par.freq = 0
 
+'noise'
+par.offset = 'False'
+par.fr_noise = 'False'
+par.jitter_noise = 'False'
+
 'set inputs'
 timing = np.array([2.,6.])/par.dt
-x_data = funs.get_sequence(par,timing)
+x_data,density,fr = funs.get_sequence(par,timing)
 
 'initial condition'
 w_0 = .03
 
 '----------------'
-def train(par,neuron,x_data,online=False,bound=False):
+def train(par,neuron,x_data):
     
     'allocate outputs'
     E_out = []
@@ -74,12 +79,12 @@ def train(par,neuron,x_data,online=False,bound=False):
         for t in range(par.T): 
             v.append(neuron.v) 
 
-            if online: 
+            if par.optimizer == 'online':
                 with torch.no_grad():
                     neuron.backward_online(x_data[:,t])
                     grad_norm += neuron.grad
                     grad_max += neuron.grad
-                    neuron.update_online(bound)  
+                    neuron.update_online()  
 
             neuron(x_data[:,t])  
         '-----------'
@@ -88,7 +93,7 @@ def train(par,neuron,x_data,online=False,bound=False):
         '-----------'
         x_hat = torch.einsum("bt,j->btj",torch.stack(v,dim=1),neuron.w)
         E = .5*loss(x_hat,x_data)
-        if online == False:
+        if par.optimizer != 'online':
             optimizer.zero_grad()
             E.backward()
             
@@ -102,7 +107,7 @@ def train(par,neuron,x_data,online=False,bound=False):
         E_out.append(E.item())
         w1.append(neuron.w[0].item())
         w2.append(neuron.w[1].item())
-        if online:
+        if par.optimizer == 'online':
             grad_norm_out.append(torch.norm(grad_norm).item())
             grad_max_out.append(torch.max(grad_norm).item())
 
@@ -114,69 +119,77 @@ def train(par,neuron,x_data,online=False,bound=False):
 
 '----------------'
 
+'plot'
+
+
+
 'online optimization'
 neuron = models.NeuronClass(par)
 loss = nn.MSELoss(reduction='sum')
 neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
-E_on, norm_on, max_on, w1_on, w2_on = train(par,neuron,x_data,
-                                      online=True)
+par.bound = 'False'
+par.optimizer = 'online'
+E_on, norm_on, max_on, w1_on, w2_on = train(par,neuron,x_data)
 
 'offline optimization: BPTT with SGD'
 neuron = models.NeuronClass(par)
 loss = nn.MSELoss(reduction='sum')
 neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
+par.bound = 'False'
+par.optimizer = 'SGD'
 optimizer = torch.optim.SGD(neuron.parameters(),lr=par.eta)
 E_sgd, norm_sgd, max_sgd, w1_sgd, w2_sgd = train(par,neuron,x_data)
 
 
+savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/suppfig_optimizers/'
 
-#%%
-plt.plot((np.abs(np.array(norm_on)-np.array(norm_sgd)))/np.array(norm_sgd))
-plt.yscale('log')
+np.save(savedir+'norm_online',norm_on)
+np.save(savedir+'w1_online',w1_on)
+np.save(savedir+'w2_online',w2_on)
+np.save(savedir+'max_online',max_on)
 
-plt.plot((np.abs(np.array(max_on)-np.array(max_sgd)))/np.abs(np.array(max_sgd)))
-plt.yscale('log')
+np.save(savedir+'norm_sgd',norm_sgd)
+np.save(savedir+'w1_sgd',w1_sgd)
+np.save(savedir+'w2_sgd',w2_sgd)
+np.save(savedir+'max_sgd',max_sgd)
 
-'plots'
-fig = plt.figure(figsize=(6,6), dpi=300)
-plt.title(r'$\tau_m$ {} ms ; $\eta$ {}'.format(par.tau_m,par.eta))
-plt.plot((np.abs(np.array(max_on)-np.array(max_sgd)))/np.abs(np.array(max_sgd)),
+
+'difference in norm'
+fig = plt.figure(figsize=(5,6), dpi=300)
+plt.plot((np.abs(np.array(norm_on)-np.array(norm_sgd)))**2/np.abs(np.array(max_sgd)),
              color='purple',linewidth=2)
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel(r'epochs')
 plt.ylabel(r'gradient norm [%]')
 plt.xlim(0,par.epochs)
 plt.yscale('log')
-plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
+plt.grid(True,which='both',color='darkgrey',linewidth=.4)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(savedir+'dgrad_online_sgd.png',format='png', dpi=300)
 plt.savefig(savedir+'dgrad_online_sgd.pdf',format='pdf', dpi=300)
 plt.close('all')
 
-'----------------'
-
-'plots'
-fig = plt.figure(figsize=(6,6), dpi=300)
-plt.title(r'$\tau_m$ {} ms ; $\eta$ {}'.format(par.tau_m,par.eta))
-plt.plot(np.abs(w1_on-w1_sgd),color='navy',linewidth=2,label = r'$w_1$')
-plt.plot(np.abs(w2_on-w2_sgd),color='mediumvioletred',linewidth=2,label=r'$w_2$')
+'difference in weights'
+fig = plt.figure(figsize=(5,6), dpi=300)
+plt.plot(np.abs(np.array(w1_on)-np.array(w1_sgd)),color='firebrick',linewidth=2,label = r'$w_1$')
+plt.plot(np.abs(np.array(w2_on)-np.array(w2_sgd)),color='lightseagreen',linewidth=2,label=r'$w_2$')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel(r'epochs')
 plt.ylabel(r'$| \Delta \vec{w}|$')
 plt.xlim(0,par.epochs)
 plt.yscale('log')
 plt.legend()
-plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+#plt.grid(True,which='both',color='darkgrey',linewidth=.4)
 plt.savefig(savedir+'dw_online_sgd.png',format='png', dpi=300)
 plt.savefig(savedir+'dw_online_sgd.pdf',format='pdf', dpi=300)
 plt.close('all')
 
-#%%
 '---------------------'
 
 par.T = 600
 'set inputs'
 timing = np.array([2.,6.])/par.dt
-x_data = funs.get_sequence(par,timing)
+x_data, density, fr = funs.get_sequence(par,timing)
 
 neuron = models.NeuronClass(par)
 loss = nn.MSELoss(reduction='sum')
@@ -216,17 +229,17 @@ w_sgd = neuron.w.detach().numpy()
 '---------------------'
 'plots'
 
-fig = plt.figure(figsize=(6,6), dpi=300)
-plt.plot(np.array(w2)/w_0,linewidth=2,color='mediumvioletred',label=r'$w_2$')
-plt.axhline(y=np.array(w_sgd[1])/w_0,color='mediumvioletred',linestyle='dashed')
+fig = plt.figure(figsize=(5,6), dpi=300)
+plt.plot(np.array(w2)/w_0,linewidth=2,color='lightseagreen',label=r'$w_2$')
+plt.axhline(y=np.array(w_sgd[1])/w_0,color='lightseagreen',linestyle='dashed')
 plt.axhline(y=1,color='k',linestyle='dashed')
-plt.plot(np.array(w1)/w_0,linewidth=2,color='navy',label=r'$w_1$')
-plt.axhline(y=np.array(w_sgd[0])/w_0,color='navy',linestyle='dashed')
+plt.plot(np.array(w1)/w_0,linewidth=2,color='firebrick',label=r'$w_1$')
+plt.axhline(y=np.array(w_sgd[0])/w_0,color='firebrick',linestyle='dashed')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel(r'time [ms]')
 plt.ylabel(r'$\vec{w}/w_0$')
 plt.legend()
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(savedir+'dw_online_example.png',format='png', dpi=300)
 plt.savefig(savedir+'dw_online_example.pdf',format='pdf', dpi=300)
 plt.close('all')

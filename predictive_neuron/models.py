@@ -88,16 +88,16 @@ class NeuronClass(nn.Module):
         grad = v*epsilon + epsilon@self.w*p
         return grad
         
-    def update_online(self,bound=False):
+    def update_online(self):
         """
         online update of parameters
         soft: apply soft lower-bound, update proportional to parameters
         hard: apply hard lower-bound, hard-coded positive parameters
         """
-        if bound == 'soft':
+        if self.par.bound == 'soft':
             self.w =  nn.Parameter(self.w - 
                                    self.par.eta*(self.w*torch.mean(self.grad,dim=0)))
-        if bound == 'hard':
+        if self.par.bound == 'hard':
             self.w =  nn.Parameter(self.w - 
                                    self.par.eta*torch.mean(self.grad,dim=0))
             self.w = nn.Parameter(torch.where(self.w<0,

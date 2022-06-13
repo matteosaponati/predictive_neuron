@@ -51,6 +51,7 @@ class NetworkClass(nn.Module):
             self.wrec = nn.Parameter(torch.as_tensor(w_rec,dtype=self.par.dtype).to(self.par.device))
         
     def state(self):
+        """initialization of network state"""
         
         self.v = torch.zeros(self.par.N,self.par.nn).to(self.par.device)
         self.z = torch.zeros(self.par.N,self.par.nn).to(self.par.device)
@@ -58,16 +59,15 @@ class NetworkClass(nn.Module):
         
     def __call__(self,x):
         
-        'compute inputs from recurrent dynamics'
-        self.z_out = self.beta*self.z_out + self.z.detach()
-        
         'update membrane voltages'
         self.v = self.alpha*self.v + x@self.w \
                      - self.par.v_th*self.z.detach()
                     
 #        self.v = self.alpha*self.v + torch.sum(torch.multiply(x,self.w),dim=1) \
 #                    - self.par.v_th*self.z.detach()
-        if self.par.is_rec == 'True': self.v += self.z_out.detach()@self.wrec
+        if self.par.is_rec == 'True': 
+            self.z_out = self.beta*self.z_out + self.z.detach()
+            self.v += self.z_out.detach()@self.wrec
         
         'update output spikes'
         self.z = torch.zeros(self.par.N,self.par.nn).to(self.par.device)

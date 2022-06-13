@@ -44,10 +44,14 @@ par.v_th = 2.5
 par.tau_x = 2.
 par.freq = 0
 
+'noise'
+par.offset = 'False'
+par.fr_noise = 'False'
+par.jitter_noise = 'False'
+
 'set inputs'
 timing = np.array([2.,6.])/par.dt
-x_data = funs.get_sequence(par,timing)
-
+x_data,densitt,fr = funs.get_sequence(par,timing)
 
 sweep = 500
 tau = np.linspace(1,500,sweep)
@@ -59,8 +63,9 @@ w1_sgd, w2_sgd = np.zeros((sweep,sweep)), np.zeros((sweep,sweep))
 for k in range(sweep):
     
     par.eta = eta[k]
+    
     for j in range(sweep):
-        print('{} and {}'.format(j,k))
+        if j%50 == 0: print('{} and {}'.format(j,k))
         
         par.tau_m = tau[j]
         
@@ -69,6 +74,8 @@ for k in range(sweep):
         neuron = models.NeuronClass(par)
         loss = nn.MSELoss(reduction='sum')
         w_0 = .02
+        par.bound = 'False'
+        par.optimizer = 'online'
         neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
         
         neuron.state()
@@ -88,6 +95,8 @@ for k in range(sweep):
         neuron = models.NeuronClass(par)
         loss = nn.MSELoss(reduction='sum')
         w_0 = .02
+        par.bound = 'False'
+        par.optimizer = 'SGD'
         neuron.w = nn.Parameter(w_0*torch.ones(par.N)).to(par.device)
         optimizer = torch.optim.SGD(neuron.parameters(),lr=par.eta)
         
@@ -107,10 +116,20 @@ for k in range(sweep):
         w1_sgd[j,k] = neuron.w[0].item()
         w2_sgd[j,k] = neuron.w[1].item()
     
-#%%
-
+savedir = '/mnt/pns/departmentN4/matteo_data/predictive_neuron/suppfig_timescale_separation/'
+np.save(savedir+'w1_on',w1_on)
+np.save(savedir+'w1_sgd',w1_sgd)
+np.save(savedir+'w2_on',w2_on)
+np.save(savedir+'w2_sgd',w2_sgd)
+np.save(savedir+'tau',tau)
+np.save(savedir+'eta',eta)
 
 'plot'
+w1_on = np.load(savedir+'w1_on.npy')
+w1_sgd = np.load(savedir+'w1_sgd.npy')
+w2_on = np.load(savedir+'w2_on.npy')
+w2_sgd = np.load(savedir+'w2_sgd.npy')
+
 from matplotlib.colors import LogNorm
 class MidPointLogNorm(LogNorm):
     def __init__(self, vmin=None, vmax=None, midpoint=None, clip=False):
@@ -120,17 +139,20 @@ class MidPointLogNorm(LogNorm):
         x, y = [np.log(self.vmin), np.log(self.midpoint), np.log(self.vmax)], [0, 0.5, 1]
         return np.ma.masked_array(np.interp(np.log(value), x, y))
 
-
-test = np.abs(w1_sgd-w1_on)/w1_sgd
+hex_list = ['#33A1C9','#FFFAF0','#7D26CD']
+            
+test = np.abs(w1_sgd-w1_on)**2/w1_sgd
 test[test==0]=10e-8
+test[test>10e16]=10e16
+
 fig = plt.figure(figsize=(7,6), dpi=300)
-plt.pcolormesh(eta,1/tau,test,norm=MidPointLogNorm(midpoint=1e1,vmax=1e16),cmap='coolwarm')
+plt.pcolormesh(eta,1/tau,test,norm=MidPointLogNorm(midpoint=1e1,vmax=1e16),cmap=funs.get_continuous_cmap(hex_list))
 plt.xscale('log')
 plt.yscale('log')
 plt.colorbar()
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel(r'$\eta$')
 plt.ylabel(r'$1/\tau_m$')
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(savedir+'eta_tau_comparison.png',format='png', dpi=300)
 plt.savefig(savedir+'eta_tau_comparison.pdf',format='pdf', dpi=300)
 plt.close('all')

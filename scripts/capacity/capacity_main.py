@@ -21,6 +21,22 @@ import numpy as np
 
 from predictive_neuron import models, funs
 
+import torch.nn.functional as F
+def sequence_capacity(par,timing):
+    
+    'create sequence'
+    x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)   
+    for k in range(par.batch):
+        x_data[k,timing,k*par.N_sub + np.arange(par.N_sub)] = 1
+
+    'synaptic time constant'
+    filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+    x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
+                         padding=par.T,groups=par.N)[:,:,1:par.T+1]
+
+    return x_data.permute(0,2,1)
+
 '----------------'
 def forward(par,neuron,x_data):
     
@@ -140,7 +156,10 @@ if __name__ == '__main__':
     par.T = int((2*par.N_sub+10) // par.dt)
     par.batch = int(par.N/par.N_sub)
     
-    w, spk = train(par)
+    timing = np.linspace(par.Dt,par.Dt*par.N_sub,par.N_sub)/par.dt
+    x_data = sequence_capacity(par,timing)
+    
+    w, spk = train(par,x_data)
     
     np.save(par.savedir+'w_N_{}_th_{}_tau_{}'.format(par.N_sub,par.v_th,par.tau_m),w)
     np.save(par.savedir+'spk_N_{}_th_{}_tau_{}'.format(par.N_sub,par.v_th,par.tau_m),spk)
