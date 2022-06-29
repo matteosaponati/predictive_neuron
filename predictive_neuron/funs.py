@@ -148,6 +148,25 @@ def get_sequence_NumPy(par,timing):
         
     return x_data
 
+'--------------'
+
+def get_sequence_nn(par,timing):
+    
+    x_data  = []
+    for n in range(par.nn):
+        
+        x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+        for b in range(par.batch):
+             x[b,timing[n][b],range(par.n_in)] = 1
+        'synaptic time constant'
+        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
+                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
+        x_data.append(x.permute(0,2,1))
+        
+    return torch.stack(x_data,dim=3)
+
 '------------'
 
 def get_pattern(par):

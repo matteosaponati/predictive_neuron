@@ -53,41 +53,45 @@ class NetworkClass(nn.Module):
     def state(self):
         """initialization of network state"""
         
-        self.v = torch.zeros(self.par.N,self.par.nn).to(self.par.device)
-        self.z = torch.zeros(self.par.N,self.par.nn).to(self.par.device)
-        self.z_out = torch.zeros(self.par.N,self.par.nn).to(self.par.device)
+        self.v = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z_out = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        
+        self.p = torch.zeros(self.par.batch,self.par.n_in,self.par.nn).to(self.par.device)
+        self.epsilon = torch.zeros(self.par.batch,self.par.n_in,self.par.nn).to(self.par.device)
+        self.grad = torch.zeros(self.par.batch,self.par.n_in,self.par.nn).to(self.par.device)    
         
     def __call__(self,x):
         
         'update membrane voltages'
-        self.v = self.alpha*self.v + x@self.w \
-                     - self.par.v_th*self.z.detach()
-                    
-#        self.v = self.alpha*self.v + torch.sum(torch.multiply(x,self.w),dim=1) \
-#                    - self.par.v_th*self.z.detach()
-        if self.par.is_rec == 'True': 
+        for b in range(self.par.batch):
+            self.v[b,:] = self.alpha*self.v[b,:] + torch.sum(x[b,:]*self.w,dim=0) \
+                     - self.par.v_th*self.z[b,:].detach()
+                     
+        if self.par.is_rec == True: 
             self.z_out = self.beta*self.z_out + self.z.detach()
             self.v += self.z_out.detach()@self.wrec
         
         'update output spikes'
-        self.z = torch.zeros(self.par.N,self.par.nn).to(self.par.device)
-        self.z[self.v - self.par.v_th > 0] = 1
-    
-class ReadoutNNClass(nn.Module):
-    
-    def __init__(self,par):
-        super(ReadoutNNClass,self).__init__()
-        self.par = par
-        self.alpha = (1-self.par.dt/self.par.tau_m)  
-        self.device, self.dtype = par.device, par.dtype
-        self.w = nn.Parameter(torch.empty((self.par.nn,self.par.n_out)).to(par.device))
-        torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.nn))
-    
-    def state(self):
-        self.y = torch.zeros((self.par.N,self.par.n_out)).to(self.par.device)
+        self.z = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z[self.v-self.par.v_th>0] = 1
         
-    def __call__(self,x):
-        self.y = self.alpha*self.y + x@self.w
+    def backward_online(self,x):
+        """
+        online evaluation of the gradient:
+            - compute the local prediction error 
+            - compute the local component of the gradient
+            - update the pre-synaptic traces
+        """
+        
+        self.epsilon = x - self.w.unsqueeze(0)*self.v
+        self.grad = -(self.v*self.epsilon + torch.sum(self.w.unsqueeze(0).repeat(self.par.batch,1,1)*self.epsilon,dim=1)*self.p)
+        self.p = self.alpha*self.p + x
+        
+    def update_online(self):
+
+        self.w =  nn.Parameter(self.w - 
+                               self.par.eta*torch.mean(self.grad,dim=0))
         
 '------------------'
 
