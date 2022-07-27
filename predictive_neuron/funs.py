@@ -157,7 +157,7 @@ def get_sequence_nn(par,timing):
         
         x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
         for b in range(par.batch):
-             x[b,timing[n][b],range(par.n_in)] = 1
+             x[b,timing[b][n],range(par.n_in)] = 1
         'synaptic time constant'
         filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
