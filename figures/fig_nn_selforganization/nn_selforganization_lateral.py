@@ -172,7 +172,7 @@ par = types.SimpleNamespace()
 par.n_in = 2
 par.nn = 6
 par.batch = 1
-par.epochs = 200
+par.epochs = 500
 par.device = 'cpu'
 par.dtype = torch.float
 
@@ -349,7 +349,7 @@ for n in range(par.nn):
         
     #%%
     
-n = -1
+n = 1
 plt.plot(v_out[-1][0,:,n])
 for k in timing[n][0]:
     plt.axvline(x=(k),color='k')
