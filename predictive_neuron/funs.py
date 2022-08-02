@@ -173,12 +173,12 @@ def get_sequence_nn_selforg(par,random=False):
         for n in range(par.nn):
             for b in range(par.batch): 
                 spk_times = np.random.randint(0,(par.Dt/par.dt)*par.n_in,size=par.n_in)
-                timing[n].append(spk_times+n*(par.delay/par.dt))
+                timing[n].append(spk_times+n*(par.n_in*par.Dt/par.dt)+ par.delay/par.dt)
     else: 
         timing = [[] for n in range(par.nn)]
         spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
         for n in range(par.nn):
-            for b in range(par.batch): timing[n].append(spk_times+n*(par.delay/par.dt))
+            for b in range(par.batch): timing[n].append(spk_times+n*(par.n_in*par.Dt/par.dt)+ par.delay/par.dt)
             
     x_data  = []
     for n in range(par.nn):
