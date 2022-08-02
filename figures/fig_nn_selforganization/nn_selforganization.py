@@ -22,7 +22,7 @@ def forward(par,network,x_data):
     
     for t in range(par.T):     
         'append voltage state'
-        v.append(network.v)
+        v.append(network.v.clone().detach().numpy())
         'update weights online'
         if par.online == True: 
             with torch.no_grad():
@@ -35,7 +35,7 @@ def forward(par,network,x_data):
             for b in range(par.batch):
                 if network.z[b,n] != 0: z[n][b].append(t*par.dt)  
         
-    return network, torch.stack(v,dim=1), z
+    return network, np.stack(v,axis=1), z
 '----------------'
 
 class NetworkClass_SelfOrg(nn.Module):
@@ -145,7 +145,7 @@ par = types.SimpleNamespace()
 
 'architecture'
 par.n_in = 2
-par.nn = 2
+par.nn = 10
 par.T = 1000
 par.batch = 1
 par.epochs = 1000
@@ -153,7 +153,7 @@ par.device = 'cpu'
 par.dtype = torch.float
 
 'model parameters'
-par.eta = 1e-5
+par.eta = 1e-6
 par.dt = .05
 par.tau_m = 10
 par.v_th = 2.
@@ -163,15 +163,20 @@ par.is_rec = True
 par.online = True
 par.selforg = True
 
-par.w_max = .05
+par.w_max = .2
 #%%
 'setup inputs'
+par.delay = 4/par.dt
+par.Dt = 2
+par.T = int((par.nn*par.delay*par.dt + par.Dt+70)/par.dt)
 timing = [[] for n in range(par.nn)]
 spk_times = []
+times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
+# times = np.random.randint(0,par.T-200,size=par.n_in)
 for b in range(par.batch):
-    spk_times.append(np.random.randint(0,par.T-200,size=par.n_in))
+    spk_times.append(times)
 for n in range(par.nn):
-    for b in range(par.batch): timing[n].append(spk_times[b])
+    for b in range(par.batch): timing[n].append(spk_times[b]+n*par.delay)
 
 x_data = get_pattern_fixed_nn(par,timing)
 
@@ -198,43 +203,45 @@ plt.imshow(x_data[0,:,:,0].T,aspect='auto')
 
 'set model'
 network = NetworkClass_SelfOrg(par)
-par.w_0 = .001
-par.w_0rec = .0
-network.w = nn.Parameter(par.w_0*torch.ones(par.n_in+par.nn-1,par.nn)).to(par.device)
+par.w_0 = .08
+par.w_0rec = .01
+w = par.w_0*torch.ones(par.n_in+par.nn-1,par.nn)
+w[par.n_in:,] = 0.01
+network.w = nn.Parameter(w).to(par.device)
 
 #%%
 
-def forward_check(par,network,x_data):
-    z = [[[] for b in range(par.batch)] for n in range(par.nn)]
-    v = []
-    p = []
-    epsilon = []
+# def forward_check(par,network,x_data):
+#     z = [[[] for b in range(par.batch)] for n in range(par.nn)]
+#     v = []
+#     p = []
+#     epsilon = []
     
-    for t in range(par.T):     
-        'append voltage state'
-        v.append(network.v.detach())
-        'update weights online'
-        if par.online == True: 
-            with torch.no_grad():
-                network.backward_online(x_data[:,t])
-                network.update_online()  
-        'forward pass'
-        network(x_data[:,t]) 
-        'append output spikes'
-        for n in range(par.nn):
-            for b in range(par.batch):
-                if network.z[b,n] != 0: z[n][b].append(t*par.dt) 
+#     for t in range(par.T):     
+#         'append voltage state'
+#         v.append(network.v.detach())
+#         'update weights online'
+#         if par.online == True: 
+#             with torch.no_grad():
+#                 network.backward_online(x_data[:,t])
+#                 network.update_online()  
+#         'forward pass'
+#         network(x_data[:,t]) 
+#         'append output spikes'
+#         for n in range(par.nn):
+#             for b in range(par.batch):
+#                 if network.z[b,n] != 0: z[n][b].append(t*par.dt) 
         
-        p.append(network.p.detach())
-        epsilon.append(network.epsilon.detach())
+#         p.append(network.p.detach())
+#         epsilon.append(network.epsilon.detach())
         
-    return network, torch.stack(v,dim=1), z, torch.stack(p,dim=1), torch.stack(epsilon,dim=1)
+#     return network, torch.stack(v,dim=1), z, torch.stack(p,dim=1), torch.stack(epsilon,dim=1)
 
-network.state()
-network,v,z,p,epsilon = forward_check(par,network,x_data)
+# network.state()
+# network,v,z,p,epsilon = forward_check(par,network,x_data)
 
-# plt.plot(v[0,:,1].detach().numpy())    
-plt.plot(p[0,:,-1,1].detach().numpy())    
+# # plt.plot(v[0,:,1].detach().numpy())    
+# plt.plot(p[0,:,-1,1].detach().numpy())    
 
 #%%
 
@@ -249,6 +256,9 @@ for n in range(par.nn):
     optimizerList.append(optimizer)
 
 #%%
+# 
+# par.epochs = 600
+
 w = np.zeros((par.epochs,par.n_in+par.nn-1,par.nn))
 E = [[] for n in range(par.nn)]
 z_out = [[] for n in range(par.nn)]
@@ -263,7 +273,7 @@ for e in range(par.epochs):
     network.state()
     network, v, z = forward(par,network,x_data)
         
-    v_out.append(v.detach().numpy())
+    v_out.append(v)
 #    x_hat = torch.einsum("btn,jn->btjn",v,network.w)    
 #    lossList = []
 #    for n in range(par.nn):  
@@ -281,6 +291,8 @@ for e in range(par.epochs):
     if e%50 == 0: print(e)
     
 #%%
+
+fig = plt.figure(figsize=(10,30), dpi=300)
     
 for n in range(par.nn):
     plt.subplot(par.nn,1,n+1)
@@ -292,22 +304,69 @@ plt.legend()
 
 #%%
 
-plt.plot(v_out[-1][0,:,0])
+plt.plot(v_out[-1][0,:,5])
     
 #%%
+fig = plt.figure(figsize=(20,5))
+for n in range(par.nn):
+    plt.subplot(1,par.nn,n+1)
+    for k,j in zip(z_out[n],range(par.epochs)):
+        plt.scatter([j]*len(k[0]),k[0],edgecolor='royalblue',facecolor='none',s=7)
+    for k in timing[n][0]:
+        plt.axhline(y=(k)*par.dt,color='k')
+        plt.ylim(0,par.T*par.dt)
+    
+        
+        
+#%%
 
-plt.subplot(1,2,1)
+fig = plt.figure(figsize=(7,6), dpi=300)
+plt.title(r'$\vec{w}$')
+# plt.yticks(np.arange(2,par.nn+2,1),np.arange(1,par.nn+1,1))
+# plt.xticks(np.arange(0,par.nn+2,1),np.arange(1,par.nn+1,1))
+plt.xlabel(r'neurons')
+# plt.xlim(-.5,par.nn-.5)
+# plt.ylim(-.5,len(w[:,,0])-.5)
+plt.imshow(w[-1,:],aspect='auto',cmap='BuPu')
+plt.colorbar()
+        
+#%%
+
+or k,j in zip(z_out[n],range(par.epochs)):
+    plt.scatter([j]*len(k[0]),k[0],edgecolor='royalblue',facecolor='none',s=7)
+for k in timing[n][0]:
+    plt.axvline(x=(k),color='k')
+    plt.ylim(0,par.T*par.dt)
+
+fig = plt.figure(figsize=(20,5))
+for n in range(par.nn):
+    plt.subplot(1,par.nn,n+1)
+    for k,j in zip(z_out[n],range(par.epochs)):
+        plt.scatter([j]*len(k[0]),k[0],edgecolor='royalblue',facecolor='none',s=7)
+    for k in timing[n][0]:
+        plt.axhline(y=(k)*par.dt,color='k')
+        plt.ylim(0,par.T*par.dt)
+
+    #%%
+    
+fig = plt.figure(figsize=(20,5))
+plt.subplot(1,par.nn,1)
 for k,j in zip(z_out[0],range(par.epochs)):
     plt.scatter([j]*len(k[0]),k[0],edgecolor='royalblue',facecolor='none',s=7)
-for k in spk_times[0]:
-    plt.axhline(y=k*par.dt,color='k')
-plt.xlabel(r'epochs')
-plt.ylabel('spk times [ms]')
-plt.subplot(1,2,2)
+for k in timing[0][0]:
+    plt.axhline(y=(k)*par.dt,color='k')
+    plt.ylim(0,par.T*par.dt)
+
+plt.subplot(1,par.nn,2)
 for k,j in zip(z_out[1],range(par.epochs)):
     plt.scatter([j]*len(k[0]),k[0],edgecolor='royalblue',facecolor='none',s=7)
-for k in spk_times[0]:
-    plt.axhline(y=(k+delay)*par.dt,color='k')
-plt.xlabel(r'epochs')
-plt.ylabel('spk times [ms]')
-    
+for k in timing[1][0]:
+    plt.axhline(y=(k)*par.dt,color='k')
+    plt.ylim(0,par.T*par.dt)
+
+plt.subplot(1,par.nn,3)
+for k,j in zip(z_out[2],range(par.epochs)):
+    plt.scatter([j]*len(k[0]),k[0],edgecolor='royalblue',facecolor='none',s=7)
+for k in timing[2][0]:
+    plt.axhline(y=(k)*par.dt,color='k')
+    plt.ylim(0,par.T*par.dt)
