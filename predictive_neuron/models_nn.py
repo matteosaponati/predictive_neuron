@@ -97,12 +97,11 @@ class NetworkClass(nn.Module):
 
 class NetworkClass_SelfOrg(nn.Module):
     """
-    NETWORK MODEL with adaptable recurrent connections
+    NETWORK MODEL
     - get the input vector at the current timestep
     - compute the current prediction error
     - update the recursive part of the gradient and the membrane potential
     - thresholding nonlinearity and evaluation of output spike
-    - online weight update with possible hard thresholds
     inputs:
         par: model parameters
     """
@@ -114,12 +113,8 @@ class NetworkClass_SelfOrg(nn.Module):
         self.alpha = (1-self.par.dt/self.par.tau_m)  
         self.beta = (1-self.par.dt/self.par.tau_x)              
         
-        if self.par.selforg == True:
-            self.w = nn.Parameter(torch.empty((self.par.n_in+self.par.nn-1,self.par.nn)).to(self.par.device))
-            torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.n_in))
-        else: 
-            self.w = nn.Parameter(torch.empty((self.par.n_in,self.par.nn)).to(self.par.device))
-            torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.n_in))
+        self.w = nn.Parameter(torch.empty((self.par.n_in+self.par.lateral,self.par.nn)).to(self.par.device))
+        torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.n_in+self.par.lateral))
         
     def state(self):
         """initialization of network state"""
@@ -128,20 +123,30 @@ class NetworkClass_SelfOrg(nn.Module):
         self.z = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
         self.z_out = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
         
-        self.p = torch.zeros(self.par.batch,self.par.n_in+self.par.nn-1,self.par.nn).to(self.par.device)
-        self.epsilon = torch.zeros(self.par.batch,self.par.n_in+self.par.nn-1,self.par.nn).to(self.par.device)
-        self.grad = torch.zeros(self.par.batch,self.par.n_in+self.par.nn-1,self.par.nn).to(self.par.device)  
+        'external inputs + lateral connections'
+        self.p = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
+        self.epsilon = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
+        self.grad = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)  
 
     def __call__(self,x):
         
-        'create total input (external inputs + recurrent connections)'
-        x_tot = torch.zeros(self.par.batch,self.par.n_in+self.par.nn-1,self.par.nn).to(self.par.device)
+        'create total input'
+        x_tot = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
         self.z_out = self.beta*self.z_out + self.z.detach()
-        for n in range(self.par.nn):
-            x_tot[:,:,n] = torch.cat([x[:,:,n],
-                                        torch.cat([self.z_out.detach()[:,:n],
-                                                   self.z_out.detach()[:,n+1:]],dim=1)],dim=1)
         
+        for n in range(self.par.nn):
+            if n == 0:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                        torch.cat([torch.zeros(self.par.batch,1),
+                                                   self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)   
+            if n == self.par.nn-1:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                        torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
+                                                  torch.zeros(self.par.batch,1)],dim=1)],dim=1)   
+            else:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                            torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
+                                                       self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)        
         'update membrane voltages'
         for b in range(self.par.batch):
             self.v[b,:] = self.alpha*self.v[b,:] + torch.sum(x_tot[b,:]*self.w,dim=0) \
@@ -159,14 +164,23 @@ class NetworkClass_SelfOrg(nn.Module):
             - update the pre-synaptic traces
         """
         
-        'create total input (external inputs + recurrent connections)'
-        x_tot = torch.zeros(self.par.batch,self.par.n_in+self.par.nn-1,self.par.nn).to(self.par.device)
+        'create total input'
+        x_tot = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
         for n in range(self.par.nn):
-            x_tot[:,:,n] = torch.cat([x[:,:,n],
-                                        torch.cat([self.z_out.detach()[:,:n],
-                                                   self.z_out.detach()[:,n+1:]],dim=1)],dim=1)
-        'prediction of total input'
-        x_hat = torch.zeros(self.par.batch,self.par.n_in+self.par.nn-1,self.par.nn)
+            if n == 0:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                        torch.cat([torch.zeros(self.par.batch,1),
+                                                   self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)   
+            if n == self.par.nn-1:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                        torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
+                                                  torch.zeros(self.par.batch,1)],dim=1)],dim=1)   
+            else:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                            torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
+                                                       self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1) 
+        
+        x_hat = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn)
         for b in range(self.par.batch):
             x_hat[b,:] = self.w*self.v[b,:]
             self.epsilon[b,:] = x_tot[b,:] - x_hat[b,:]
@@ -177,15 +191,6 @@ class NetworkClass_SelfOrg(nn.Module):
     def update_online(self):
         self.w =  nn.Parameter(self.w - 
                                self.par.eta*torch.mean(self.grad,dim=0))
-        
-        'lower and upper bound'
-        if self.par.hard_upper:
-            self.w = nn.Parameter(torch.where(self.w>self.par.w_max,
-                                              self.par.w_max*torch.ones_like(self.w),
-                                              self.w))
-        if self.par.hard_lower:
-            self.w = nn.Parameter(torch.where(self.w<0,torch.zeros_like(self.w),self.w))
-
 '------------------'
 
 

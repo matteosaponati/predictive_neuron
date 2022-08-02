@@ -15,10 +15,9 @@ Author:
 """
 
 import numpy as np
-import os
 import torch
 import torch.nn.functional as F
-import torchvision
+# import torchvision
 
 import matplotlib.colors as colors
 
@@ -165,6 +164,33 @@ def get_sequence_nn(par,timing):
                           padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
         x_data.append(x.permute(0,2,1))
         
+    return torch.stack(x_data,dim=3)
+
+def get_sequence_nn_selforg(par,random=False):
+    
+    if random==True:
+        timing = [[] for n in range(par.nn)]
+        for n in range(par.nn):
+            for b in range(par.batch): 
+                spk_times = np.random.randint(0,(par.Dt/par.dt)*par.n_in,size=par.n_in)
+                timing[n].append(spk_times+n*(par.delay/par.dt))
+    else: 
+        timing = [[] for n in range(par.nn)]
+        spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
+        for n in range(par.nn):
+            for b in range(par.batch): timing[n].append(spk_times+n*(par.delay/par.dt))
+            
+    x_data  = []
+    for n in range(par.nn):
+        x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+        for b in range(par.batch):
+             x[b,timing[n][b],range(par.n_in)] = 1
+        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
+                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
+        x_data.append(x.permute(0,2,1))
+
     return torch.stack(x_data,dim=3)
 
 '------------'
@@ -382,95 +408,95 @@ def get_multi_pattern_fixed(par):
 '--------------------'
 '--------------------'
 
-def current2spktime(x, tau=20, thr=0.2, tmax=1.0, epsilon=1e-7):
-    """ Computes first firing time latency for a current input x assuming the charge time of a current based LIF neuron.
+# def current2spktime(x, tau=20, thr=0.2, tmax=1.0, epsilon=1e-7):
+#     """ Computes first firing time latency for a current input x assuming the charge time of a current based LIF neuron.
 
-    Args:
-    x -- The "current" values
+#     Args:
+#     x -- The "current" values
 
-    Keyword args:
-    tau -- The membrane time constant of the LIF neuron to be charged
-    thr -- The firing threshold value 
-    tmax -- The maximum time returned 
-    epsilon -- A generic (small) epsilon > 0
+#     Keyword args:
+#     tau -- The membrane time constant of the LIF neuron to be charged
+#     thr -- The firing threshold value 
+#     tmax -- The maximum time returned 
+#     epsilon -- A generic (small) epsilon > 0
 
-    Returns:
-    Time to first spike for each "current" x
-    """
-    idx = x<thr
-    x = np.clip(x,thr+epsilon,1e9)
-    T = tau*np.log(x/(x-thr))
-    T[idx] = tmax
-    return T
+#     Returns:
+#     Time to first spike for each "current" x
+#     """
+#     idx = x<thr
+#     x = np.clip(x,thr+epsilon,1e9)
+#     T = tau*np.log(x/(x-thr))
+#     T[idx] = tmax
+#     return T
 
-def sparse_from_fashionMNIST(par,x_data,y_data,shuffle=True):
-    """ 
-    this generator takes a spike dataset and generates spiking network input as sparse tensors. 
-    args:
-        x_data: ( sample x event x 2 ) the last dim holds (time,neuron) tuples
-        y_data: labels
-    """
+# def sparse_from_fashionMNIST(par,x_data,y_data,shuffle=True):
+#     """ 
+#     this generator takes a spike dataset and generates spiking network input as sparse tensors. 
+#     args:
+#         x_data: ( sample x event x 2 ) the last dim holds (time,neuron) tuples
+#         y_data: labels
+#     """
     
-    'get labels and batch size'
-    labels_ = np.array(y_data,dtype=np.int)
-    number_of_batches = len(x_data)//par.batch
-    sample_index = np.arange(len(x_data))
+#     'get labels and batch size'
+#     labels_ = np.array(y_data,dtype=np.int)
+#     number_of_batches = len(x_data)//par.batch
+#     sample_index = np.arange(len(x_data))
     
-    'compute discrete spike times'
-    tau_eff = 20/par.dt
-    spk_times = np.array(current2spktime(x_data,tau=tau_eff,tmax=par.T), dtype=np.int)
-    unit_numbers = np.arange(par.n_in)
+#     'compute discrete spike times'
+#     tau_eff = 20/par.dt
+#     spk_times = np.array(current2spktime(x_data,tau=tau_eff,tmax=par.T), dtype=np.int)
+#     unit_numbers = np.arange(par.n_in)
 
-    if shuffle:
-        np.random.shuffle(sample_index)
+#     if shuffle:
+#         np.random.shuffle(sample_index)
     
-    counter = 0
-    while counter<number_of_batches:
-        batch_index = sample_index[par.batch*counter:par.batch*(counter+1)]
+#     counter = 0
+#     while counter<number_of_batches:
+#         batch_index = sample_index[par.batch*counter:par.batch*(counter+1)]
 
-        coo = [ [] for i in range(3) ]
-        for bc,idx in enumerate(batch_index):
+#         coo = [ [] for i in range(3) ]
+#         for bc,idx in enumerate(batch_index):
             
-            c = spk_times[idx]<par.T
-            times, units = spk_times[idx][c], unit_numbers[c]
+#             c = spk_times[idx]<par.T
+#             times, units = spk_times[idx][c], unit_numbers[c]
             
-            batch = [bc for _ in range(len(times))]
+#             batch = [bc for _ in range(len(times))]
             
-            coo[0].extend(batch)
-            coo[1].extend(times)
-            coo[2].extend(units)
+#             coo[0].extend(batch)
+#             coo[1].extend(times)
+#             coo[2].extend(units)
 
-        i = torch.LongTensor(coo).to(par.device)
-        v = torch.FloatTensor(np.ones(len(coo[0]))).to(par.device)
+#         i = torch.LongTensor(coo).to(par.device)
+#         v = torch.FloatTensor(np.ones(len(coo[0]))).to(par.device)
     
-        X_batch = torch.sparse.FloatTensor(i, v, torch.Size([par.batch,par.T,par.n_in])).to(par.device)
-        y_batch = torch.tensor(labels_[batch_index],device=par.device)
+#         X_batch = torch.sparse.FloatTensor(i, v, torch.Size([par.batch,par.T,par.n_in])).to(par.device)
+#         y_batch = torch.tensor(labels_[batch_index],device=par.device)
 
-        yield X_batch.to(device=par.device), y_batch.to(device=par.device),
+#         yield X_batch.to(device=par.device), y_batch.to(device=par.device),
 
-        counter += 1
+#         counter += 1
 
-def get_fashionMNIST(par):
+# def get_fashionMNIST(par):
     
-    root = os.path.expanduser("~/data/datasets/torch/fashion-mnist")
-    train_dataset = torchvision.datasets.FashionMNIST(root, train=True, 
-                                                      transform=None, 
-                                                      target_transform=None, 
-                                                      download=True)
-    test_dataset = torchvision.datasets.FashionMNIST(root, train=False, 
-                                                     transform=None, 
-                                                     target_transform=None, 
-                                                     download=True)
-    'standardize data'
-    x_train = torch.tensor(train_dataset.train_data, device=par.device, dtype=par.dtype)
-    x_train = x_train.reshape(x_train.shape[0],-1)/255
-    x_test = torch.tensor(test_dataset.test_data, device=par.device, dtype=par.dtype)
-    x_test = x_test.reshape(x_test.shape[0],-1)/255
+#     root = os.path.expanduser("~/data/datasets/torch/fashion-mnist")
+#     train_dataset = torchvision.datasets.FashionMNIST(root, train=True, 
+#                                                       transform=None, 
+#                                                       target_transform=None, 
+#                                                       download=True)
+#     test_dataset = torchvision.datasets.FashionMNIST(root, train=False, 
+#                                                      transform=None, 
+#                                                      target_transform=None, 
+#                                                      download=True)
+#     'standardize data'
+#     x_train = torch.tensor(train_dataset.train_data, device=par.device, dtype=par.dtype)
+#     x_train = x_train.reshape(x_train.shape[0],-1)/255
+#     x_test = torch.tensor(test_dataset.test_data, device=par.device, dtype=par.dtype)
+#     x_test = x_test.reshape(x_test.shape[0],-1)/255
     
-    y_train = torch.tensor(train_dataset.train_labels, device=par.device, dtype=par.dtype)
-    y_test  = torch.tensor(test_dataset.test_labels, device=par.device, dtype=par.dtype)
+#     y_train = torch.tensor(train_dataset.train_labels, device=par.device, dtype=par.dtype)
+#     y_test  = torch.tensor(test_dataset.test_labels, device=par.device, dtype=par.dtype)
         
-    return x_train, y_train, x_test, y_test
+#     return x_train, y_train, x_test, y_test
 
 '--------------------'
 '--------------------'
