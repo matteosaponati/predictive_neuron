@@ -102,7 +102,7 @@ if __name__ == '__main__':
                         help='type of weights initialization')
     parser.add_argument('--init_mean',type=float, default=0.01)
     parser.add_argument('--init_a',type=float, default=0.)
-    parser.add_argument('--init_b',type=float, default=.03)
+    parser.add_argument('--init_b',type=float, default=.0)
     parser.add_argument('--w_0',type=float, default=.08,
                         help='fixed initial condition')
     parser.add_argument('--w_0rec',type=float, default=.0003,
@@ -122,6 +122,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_in', type=int, default=2)
     parser.add_argument('--delay', type=int, default=4)
     parser.add_argument('--Dt', type=int, default=2)
+    parser.add_argument('--random', type=bool, default=True) 
 
     'neuron model'
     parser.add_argument('--is_rec', type=bool, default=True,
@@ -131,7 +132,7 @@ if __name__ == '__main__':
     parser.add_argument('--dt', type=float, default= .05) 
     parser.add_argument('--tau_m', type=float, default= 20.) 
     parser.add_argument('--v_th', type=float, default= 3.)
-    parser.add_argument('--dtype', type=str, default=torch.float) 
+    parser.add_argument('--dtype', type=str, default=torch.float)
     
     parser.add_argument('--savedir', type=str, default='') 
     
@@ -141,7 +142,7 @@ if __name__ == '__main__':
     par.device = "cpu"
     par.tau_x = 2.
     par.random = False
-    par.T = int((par.nn*par.delay + par.Dt+70)/par.dt)
+    par.T = int((par.nn*par.delay+par.Dt+70)/par.dt)
     
     w, spk, v = train(par)
     
