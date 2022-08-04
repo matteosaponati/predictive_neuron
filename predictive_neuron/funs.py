@@ -193,6 +193,42 @@ def get_sequence_nn_selforg(par,random=False):
 
     return torch.stack(x_data,dim=3)
 
+def get_sequence_nn_selforg_noise(par,random=False):
+    
+    'create timing'
+    if random==True:
+        timing = [[] for n in range(par.nn)]
+        for n in range(par.nn):
+            for b in range(par.batch): 
+                spk_times = np.random.randint(0,(par.Dt/par.dt)*par.n_in,size=par.n_in)
+                timing[n].append(spk_times+n*(par.n_in*par.Dt/par.dt)+ par.delay/par.dt)
+    else: 
+        timing = [[] for n in range(par.nn)]
+        spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
+        for n in range(par.nn):
+            for b in range(par.batch): timing[n].append(spk_times+n*(par.n_in*par.Dt/par.dt)+ par.delay/par.dt)
+            
+    x_data  = []
+    for n in range(par.nn):
+        'add background firing'         
+        if par.fr_noise == True:
+            prob = par.freq*par.dt
+            mask = torch.rand(par.batch,par.T,par.n_in).to(par.device)
+            x_data = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+            x_data[mask<prob] = 1        
+        else:
+            x_data = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+        'create sequence + jitter' 
+        for b in range(par.batch):
+            if par.jitter_noise == True:
+                timing_err = np.array(timing[n][b]) + (np.random.randint(-par.jitter,par.jitter,par.n_in))/par.dt
+                x_data[b,timing_err,range(par.n_in)] = 1
+            else: x[b,timing[n][b],range(par.n_in)] = 1
+        'add to total input'
+        x_data.append(x.permute(0,2,1))
+
+    return torch.stack(x_data,dim=3)
+
 '------------'
 
 def get_pattern(par):
