@@ -210,20 +210,29 @@ def get_sequence_nn_selforg_noise(par,random=False):
             
     x_data  = []
     for n in range(par.nn):
+
         'add background firing'         
         if par.fr_noise == True:
             prob = par.freq*par.dt
             mask = torch.rand(par.batch,par.T,par.n_in).to(par.device)
-            x_data = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
-            x_data[mask<prob] = 1        
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+            x[mask<prob] = 1        
         else:
-            x_data = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+            
         'create sequence + jitter' 
         for b in range(par.batch):
             if par.jitter_noise == True:
-                timing_err = np.array(timing[n][b]) + (np.random.randint(-par.jitter,par.jitter,par.n_in))/par.dt
-                x_data[b,timing_err,range(par.n_in)] = 1
+                timing_err = np.array(timing[n][b]) + np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt
+                x[b,timing_err,range(par.n_in)] = 1
             else: x[b,timing[n][b],range(par.n_in)] = 1
+        
+        'filtering'
+        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
+                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
+            
         'add to total input'
         x_data.append(x.permute(0,2,1))
 
