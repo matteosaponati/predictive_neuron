@@ -43,7 +43,23 @@ fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 n = 1
 plt.imshow(selectivity[n,:],aspect='auto')
 
+
+#%%
+
+spk_times = np.zeros((par.epochs,par.nn,par.batch))
+
+for e in range(par.epochs):
+    for n in range(par.nn):
+        for b in range(par.batch):
         
+            if len(z_out[n][e][b]) != 0: 
+                print(len(z_out[n][e][b]))
+                print(z_out[e][n][b])
+                spk_times[e,n,b] = z_out[e][n][b][0]
+                
+#%%
+                
+    
 
 
         
