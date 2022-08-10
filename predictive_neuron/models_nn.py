@@ -84,8 +84,12 @@ class NetworkClass(nn.Module):
             - update the pre-synaptic traces
         """
         
-        self.epsilon = x - self.w.unsqueeze(0)*self.v
-        self.grad = -(self.v*self.epsilon + torch.sum(self.w.unsqueeze(0).repeat(self.par.batch,1,1)*self.epsilon,dim=1)*self.p)
+        x_hat = torch.zeros(self.par.batch,self.par.n_in,self.par.nn)
+        for b in range(self.par.batch):
+            x_hat[b,:] = self.w*self.v[b,:]
+            self.epsilon[b,:] = x[b,:] - x_hat[b,:]
+            self.grad[b,:] = -(self.v[b,:]*self.epsilon[b,:] \
+                             + torch.sum(self.w*self.epsilon[b,:],dim=0)*self.p[b,:])
         self.p = self.alpha*self.p + x
         
     def update_online(self):
