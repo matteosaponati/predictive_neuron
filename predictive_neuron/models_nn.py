@@ -189,7 +189,7 @@ class NetworkClass_SelfOrg(nn.Module):
             x_hat[b,:] = self.w*self.v[b,:]
             self.epsilon[b,:] = x_tot[b,:] - x_hat[b,:]
             self.grad[b,:] = -(self.v[b,:]*self.epsilon[b,:] \
-                             + torch.sum(self.w*self.epsilon[0,:],dim=0)*self.p[b,:])
+                             + torch.sum(self.w*self.epsilon[b,:],dim=0)*self.p[b,:])
         self.p = self.alpha*self.p + x_tot
         
     def update_online(self):
