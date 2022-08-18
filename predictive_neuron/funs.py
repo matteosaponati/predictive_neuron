@@ -149,23 +149,6 @@ def get_sequence_NumPy(par,timing):
 
 '--------------'
 
-def get_sequence_nn(par,timing):
-    
-    x_data  = []
-    for n in range(par.nn):
-        
-        x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
-        for b in range(par.batch):
-             x[b,timing[b][n],range(par.n_in)] = 1
-        'synaptic time constant'
-        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
-                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
-        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
-                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
-        x_data.append(x.permute(0,2,1))
-        
-    return torch.stack(x_data,dim=3)
-
 def get_sequence_nn_selforg(par,random=False):
     
     if random==True:
@@ -173,12 +156,12 @@ def get_sequence_nn_selforg(par,random=False):
         for n in range(par.nn):
             for b in range(par.batch): 
                 spk_times = np.random.randint(0,(par.Dt/par.dt)*par.n_in,size=par.n_in)
-                timing[n].append(spk_times+n*(par.n_in*par.Dt/par.dt)+ par.delay/par.dt)
+                timing[n].append(spk_times+n*par.delay/par.dt)
     else: 
         timing = [[] for n in range(par.nn)]
         spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
         for n in range(par.nn):
-            for b in range(par.batch): timing[n].append(spk_times+n*(par.n_in*par.Dt/par.dt)+ par.delay/par.dt)
+            for b in range(par.batch): timing[n].append(spk_times+n*par.delay/par.dt)
             
     x_data  = []
     for n in range(par.nn):
@@ -240,6 +223,38 @@ def get_sequence_nn_selforg_noise(par,random=False):
 
 '------------'
 
+def get_multisequence_nn_noise(par,timing):
+    
+    x_data  = []
+    for n in range(par.nn):
+        
+        'add background firing'         
+        if par.fr_noise == True:
+            prob = par.freq*par.dt
+            mask = torch.rand(par.batch,par.T,par.n_in).to(par.device)
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+            x[mask<prob] = 1        
+        else:
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+            
+        'create sequence + jitter' 
+        for b in range(par.batch):
+            if par.jitter_noise == True:
+                timing_err = np.array(timing[n][b]) + np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt
+                x[b,timing_err,range(par.n_in)] = 1
+            else: x[b,timing[n][b],range(par.n_in)] = 1
+        
+        'filtering'
+        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
+                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
+        x_data.append(x.permute(0,2,1))
+
+    return torch.stack(x_data,dim=3)
+
+'------------'
+
 def get_pattern(par):
     
     if par.offset == 'True': offset = np.random.randint(0,par.T/2)
@@ -295,7 +310,6 @@ def get_pattern_density(par,mu=None,offset=None):
     
     return density, fr
     
-
 def get_pattern_fixed(par):
     
     prob = par.freq_pattern*par.dt
