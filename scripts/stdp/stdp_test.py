@@ -106,7 +106,7 @@ def stdp_window(delay,par):
         
         'set inputs'
         timing = np.array([0.,delay[k]])/par.dt
-        x_data,density = funs.get_sequence(par,timing)
+        x_data,density = funs.get_sequence_stdp(par,timing)
         
         neuron = models.NeuronClass(par)
         w_0_pre = torch.Tensor([.01,.11])
@@ -135,8 +135,9 @@ def stdp_window(delay,par):
 #%%
     
 'set inputs'
+par.N_stdp = 2
 timing = np.array([2.,20.])/par.dt
-x_data,_ = funs.get_sequence(par,timing)
+x_data,_ = funs.get_sequence_stdp(par,timing)
 
 w_0_pre = torch.Tensor([.005,.1])
 neuron = models.NeuronClass(par)

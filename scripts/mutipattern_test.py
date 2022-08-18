@@ -87,20 +87,20 @@ par = types.SimpleNamespace()
 par.dt = .05
 par.eta = 1e-3
 par.tau_m = 10.
-par.v_th = 1.5
+par.v_th = 1.2
 par.tau_x = 2.
 
 'architecture'
-par.patterns = 5
-par.N_patterns = 10*np.ones(par.patterns,dtype=int)
+par.patterns = 3
+par.N_patterns = 6*np.ones(par.patterns,dtype=int)
 par.T_patterns = (20*np.ones(par.patterns)/par.dt).astype(int)
 par.DT = int(20/par.dt)
-par.freqs = .01*np.ones(par.patterns)
+par.freqs = .02*np.ones(par.patterns)
 par.N = np.sum(par.N_patterns,dtype=int)
 par.T = (np.sum(par.T_patterns) + par.patterns*par.DT).astype(int)
 par.seed = 1992
 par.batch = 1
-par.epochs = 1000
+par.epochs = 400
 par.device = 'cpu'
 
 par.init = 'fixed'
@@ -163,7 +163,6 @@ plt.savefig(par.dir+'pattern_sorted.png',format='png', dpi=300)
 #%%
 loss, w, v, spk = train(par,x_data)
 
-
 #%%
 
 fig = plt.figure(figsize=(7,11), dpi=300)
@@ -190,7 +189,6 @@ plt.ylabel(r'$\vec{w}$')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(par.dir+'spk_density.png',format='png', dpi=300)
 plt.close('all')
-
 
 #%%
 
