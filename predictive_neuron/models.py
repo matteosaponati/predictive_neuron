@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "models.py"
-Predictive processes at the single neuron level 
+single neuron and network models for predictive plasticity
 
 Author:
     
@@ -106,7 +106,7 @@ class NeuronClass(nn.Module):
 
 '------------------'
 
-class NeuronClass_NumPy:
+class NeuronClass_NumPy():
     """
     NEURON MODEL (NumPy version)
     - get the input vector at the current timestep
@@ -151,3 +151,176 @@ class NeuronClass_NumPy:
         if self.v-self.par.v_th>0: self.z = 1
         else: self.z = 0
         
+'------------------'
+'------------------'
+
+class NetworkClass_SelfOrg(nn.Module):
+    """
+    NETWORK MODEL
+    - get the input vector at the current timestep
+    - compute the current prediction error
+    - update the recursive part of the gradient and the membrane potential
+    - thresholding nonlinearity and evaluation of output spike
+    inputs:
+        par: model parameters
+    """
+    
+    def __init__(self,par):
+        super(NetworkClass_SelfOrg,self).__init__() 
+        
+        self.par = par  
+        self.alpha = (1-self.par.dt/self.par.tau_m)  
+        self.beta = (1-self.par.dt/self.par.tau_x)              
+        
+        self.w = nn.Parameter(torch.empty((self.par.n_in+self.par.lateral,self.par.nn)).to(self.par.device))
+        torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.n_in+self.par.lateral))
+        
+    def state(self):
+        """initialization of network state"""
+
+        self.v = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z_out = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        'external inputs + lateral connections'
+        self.p = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
+        self.epsilon = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
+        self.grad = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)  
+
+    def __call__(self,x):
+        
+        'create total input'
+        x_tot = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
+        self.z_out = self.beta*self.z_out + self.z.detach()
+        
+        for n in range(self.par.nn):
+            if n == 0:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                        torch.cat([torch.zeros(self.par.batch,1),
+                                                   self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)   
+            if n == self.par.nn-1:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                        torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
+                                                  torch.zeros(self.par.batch,1)],dim=1)],dim=1)   
+            else:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                            torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
+                                                       self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)        
+        'update membrane voltages'
+        for b in range(self.par.batch):
+            self.v[b,:] = self.alpha*self.v[b,:] + torch.sum(x_tot[b,:]*self.w,dim=0) \
+                     - self.par.v_th*self.z[b,:].detach()
+        
+        'update output spikes'
+        self.z = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z[self.v-self.par.v_th>0] = 1
+        
+    def backward_online(self,x):
+        """
+        online evaluation of the gradient:
+            - compute the local prediction error 
+            - compute the local component of the gradient
+            - update the pre-synaptic traces
+        """
+        
+        'create total input'
+        x_tot = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
+        for n in range(self.par.nn):
+            if n == 0:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                        torch.cat([torch.zeros(self.par.batch,1),
+                                                   self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)   
+            if n == self.par.nn-1:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                        torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
+                                                  torch.zeros(self.par.batch,1)],dim=1)],dim=1)   
+            else:
+                x_tot[:,:,n] = torch.cat([x[:,:,n],
+                                            torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
+                                                       self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1) 
+        
+        x_hat = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn)
+        for b in range(self.par.batch):
+            x_hat[b,:] = self.w*self.v[b,:]
+            self.epsilon[b,:] = x_tot[b,:] - x_hat[b,:]
+            self.grad[b,:] = -(self.v[b,:]*self.epsilon[b,:] \
+                             + torch.sum(self.w*self.epsilon[b,:],dim=0)*self.p[b,:])
+        self.p = self.alpha*self.p + x_tot
+        
+    def update_online(self):
+        self.w =  nn.Parameter(self.w - 
+                               self.par.eta*torch.mean(self.grad,dim=0))
+
+'------------------'
+
+class NetworkClass(nn.Module):
+    """
+    NETWORK MODEL
+    - get the input vector at the current timestep
+    - compute the current prediction error
+    - update the recursive part of the gradient and the membrane potential
+    - thresholding nonlinearity and evaluation of output spike
+    inputs:
+        par: model parameters
+    """
+    
+    def __init__(self,par):
+        super(NetworkClass,self).__init__() 
+        
+        self.par = par  
+        self.alpha = (1-self.par.dt/self.par.tau_m)  
+        self.beta = (1-self.par.dt/self.par.tau_x)              
+        
+        self.w = nn.Parameter(torch.empty((self.par.n_in,self.par.nn)).to(self.par.device))
+        torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.n_in))
+        
+        if self.par.is_rec == 'True':
+            w_rec = np.random.randn(self.par.nn,self.par.nn)/np.sqrt(self.par.nn)
+            w_rec = np.where(np.eye(self.par.nn)>0,np.zeros_like(w_rec),w_rec)
+            self.wrec = nn.Parameter(torch.as_tensor(w_rec,dtype=self.par.dtype).to(self.par.device))
+        
+    def state(self):
+        """initialization of network state"""
+        
+        self.v = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z_out = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        
+        self.p = torch.zeros(self.par.batch,self.par.n_in,self.par.nn).to(self.par.device)
+        self.epsilon = torch.zeros(self.par.batch,self.par.n_in,self.par.nn).to(self.par.device)
+        self.grad = torch.zeros(self.par.batch,self.par.n_in,self.par.nn).to(self.par.device)    
+        
+    def __call__(self,x):
+        
+        'update membrane voltages'
+        for b in range(self.par.batch):
+            self.v[b,:] = self.alpha*self.v[b,:] + torch.sum(x[b,:]*self.w,dim=0) \
+                     - self.par.v_th*self.z[b,:].detach()
+                     
+        if self.par.is_rec == True: 
+            self.z_out = self.beta*self.z_out + self.z.detach()
+            self.v += self.z_out.detach()@self.wrec
+        
+        'update output spikes'
+        self.z = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
+        self.z[self.v-self.par.v_th>0] = 1
+        
+    def backward_online(self,x):
+        """
+        online evaluation of the gradient:
+            - compute the local prediction error 
+            - compute the local component of the gradient
+            - update the pre-synaptic traces
+        """
+        
+        x_hat = torch.zeros(self.par.batch,self.par.n_in,self.par.nn)
+        for b in range(self.par.batch):
+            x_hat[b,:] = self.w*self.v[b,:]
+            self.epsilon[b,:] = x[b,:] - x_hat[b,:]
+            self.grad[b,:] = -(self.v[b,:]*self.epsilon[b,:] \
+                             + torch.sum(self.w*self.epsilon[b,:],dim=0)*self.p[b,:])
+        self.p = self.alpha*self.p + x
+        
+    def update_online(self):
+
+        self.w =  nn.Parameter(self.w - 
+                               self.par.eta*torch.mean(self.grad,dim=0))

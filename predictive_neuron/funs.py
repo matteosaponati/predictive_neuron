@@ -43,25 +43,21 @@ def get_density(par,x):
 
 def get_sequence(par,timing):
     
-    if par.offset == 'True': timing += np.random.randint(0,par.T/2)
+    if par.offset == True: timing += np.random.randint(0,par.T/2)
         
-    if par.fr_noise == 'True':
-        prob = par.freq*par.dt
-        mask = torch.rand(par.batch,par.T,par.N).to(par.device)
+    if par.freq_noise == True:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-        x_data[mask<prob] = 1        
+        for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
     else:
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
         
-    if par.jitter_noise == 'True':
+    if par.jitter_noise == True:
          for b in range(par.batch):
-             timing_err = np.array(timing) + (np.random.randint(-par.jitter,par.jitter,par.N))/par.dt
-             x_data[b,timing_err.tolist(),range(par.N)] = 1
+             timing_err = np.array(timing) + (np.random.randint(-par.jitter,par.jitter,len(timing)))/par.dt
+             x_data[b,timing_err.tolist(),range(len(timing))] = 1
     else:
-        x_data[:,timing,range(par.N)] = 1
-             
-    density = get_density(par,x_data)
-    fr = get_firing_rate(par,x_data)
+        x_data[:,timing,range(len(timing))] = 1
     
     'synaptic time constant'
     filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
@@ -69,26 +65,25 @@ def get_sequence(par,timing):
     x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
                          padding=par.T,groups=par.N)[:,:,1:par.T+1]
     
-    return x_data.permute(0,2,1), density, fr
+    return x_data.permute(0,2,1)
 
-def get_sequence_density(par,timing,mu=None,jitter=None,offset=None):
+def get_sequence_density(par,timing):
     
-    if offset: timing += np.random.randint(0,par.T/2)
+    if par.offset == True: timing += np.random.randint(0,par.T/2)
         
-    if par.fr_noise == 'True':
-        prob = par.freq*par.dt
-        mask = torch.rand(par.batch,par.T,par.N).to(par.device)
+    if par.freq_noise == True:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-        x_data[mask<prob] = 1        
+        for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
     else:
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
         
-    if par.jitter_noise == 'True':
+    if par.jitter_noise == True:
          for b in range(par.batch):
-             timing_err = np.array(timing) + (np.random.randint(-par.jitter,par.jitter,par.N))/par.dt
-             x_data[b,timing_err.tolist(),range(par.N)] = 1
+             timing_err = np.array(timing) + (np.random.randint(-par.jitter,par.jitter,len(timing)))/par.dt
+             x_data[b,timing_err.tolist(),range(len(timing))] = 1
     else:
-        x_data[:,timing,range(par.N)] = 1
+        x_data[:,timing,range(len(timing))] = 1
              
     density = get_density(par,x_data)
     fr = get_firing_rate(par,x_data)
@@ -97,7 +92,7 @@ def get_sequence_density(par,timing,mu=None,jitter=None,offset=None):
 
 def sequence_capacity(par,timing):
     
-    if par.fr_noise == 'True':
+    if par.fr_noise == True:
         prob = par.freq*par.dt
         mask = torch.rand(par.batch,par.T,par.N).to(par.device)
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
@@ -107,7 +102,7 @@ def sequence_capacity(par,timing):
     
     'create sequence' 
     for b in range(par.batch):
-        if par.jitter_noise == 'True':
+        if par.jitter_noise == True:
             timing_err = np.array(timing) + (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
             x_data[b,timing_err,b*par.N_sub + np.arange(par.N_sub)] = 1
         else: x_data[b,timing,b*par.N_sub + np.arange(par.N_sub)] = 1
@@ -149,13 +144,13 @@ def get_sequence_nn_selforg(par):
         timing = [[] for n in range(par.nn)]
         spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
         for n in range(par.nn):
-            for b in range(par.batch): timing[n].append(spk_times+n*(par.n_in*par.Dt/par.dt)+ par.delay/par.dt)
+            for b in range(par.batch): timing[n].append(spk_times+n*par.delay/par.dt) #*(par.n_in*par.Dt/par.dt)+ 
             
     x_data  = []
     for n in range(par.nn):
 
         'add background firing'         
-        if par.fr_noise == True:
+        if par.freq_noise == True:
             prob = par.freq*par.dt
             mask = torch.rand(par.batch,par.T,par.n_in).to(par.device)
             x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
@@ -189,7 +184,7 @@ def get_multisequence_nn(par,timing):
     for n in range(par.nn):
         
         'add background firing'         
-        if par.fr_noise == True:
+        if par.freq_noise == True:
             prob = par.freq*par.dt
             mask = torch.rand(par.batch,par.T,par.n_in).to(par.device)
             x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
