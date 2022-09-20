@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-from predictive_neuron import models_nn, funs
+from predictive_neuron import models, funs
 
 '----------------'
 def forward(par,network,x_data):
@@ -48,7 +48,8 @@ def train(par):
     x_data = funs.get_sequence_nn_selforg(par)
     
     'set model'
-    network = models_nn.NetworkClass_SelfOrg(par)
+    network = models.NetworkClass_SelfOrg(par)
+    
     'initialization'
     if par.init == 'trunc_gauss':
         network.w = nn.Parameter(torch.empty(par.n_in+par.lateral,par.nn)).to(par.device)

@@ -4,8 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "example_input_subseqs.py"
-neural network with self-organization lateral connections for 
-sequence recall and sequence completion
+examples of network activity before and after training
 
 Author:
     
@@ -23,7 +22,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from predictive_neuron import models_nn, funs
+from predictive_neuron import models, funs
 
 '---------------------------------------'
 'define function for input subseqs'
@@ -104,7 +103,7 @@ for n in range(par.nn):
 '---------------------------------------'
 'create network dynamics - first epoch'
 x_data = funs.get_subseqs(par,timing)
-network = models_nn.NetworkClass_SelfOrg(par)
+network = models.NetworkClass_SelfOrg(par)
 network.w = nn.Parameter(torch.from_numpy(w[0,:])).to(par.device)
 network.state()
 network, v_before, z_before = network(par,network,x_data)
@@ -112,7 +111,7 @@ network, v_before, z_before = network(par,network,x_data)
 '---------------------------------------'
 'create network dynamics - final epoch'
 x_data = funs.get_subseqs(par,timing)
-network = models_nn.NetworkClass_SelfOrg(par)
+network = models.NetworkClass_SelfOrg(par)
 network.w = nn.Parameter(torch.from_numpy(w[-1,:])).to(par.device)
 network.state()
 network, v_after, z_after = network(par,network,x_data)
@@ -188,7 +187,7 @@ for n in range(par.nn):
 '---------------------------------------'
 'create network dynamics - first epoch'
 x_data = funs.get_subseqs(par,timing)
-network = models_nn.NetworkClass_SelfOrg(par)
+network = models.NetworkClass_SelfOrg(par)
 network.w = nn.Parameter(torch.from_numpy(w[0,:])).to(par.device)
 network.state()
 network, v_before, z_before = network(par,network,x_data)
@@ -196,7 +195,7 @@ network, v_before, z_before = network(par,network,x_data)
 '---------------------------------------'
 'create network dynamics - final epoch'
 x_data = funs.get_subseqs(par,timing)
-network = models_nn.NetworkClass_SelfOrg(par)
+network = models.NetworkClass_SelfOrg(par)
 network.w = nn.Parameter(torch.from_numpy(w[-1,:])).to(par.device)
 network.state()
 network, v_after, z_after = network(par,network,x_data)

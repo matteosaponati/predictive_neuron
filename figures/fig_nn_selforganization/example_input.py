@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "example_input.py"
-create example input
+create example input for self-organizing neural network
 
 Author:
     

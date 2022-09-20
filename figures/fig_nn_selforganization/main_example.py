@@ -23,7 +23,7 @@ import matplotlib.colors as colors
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from predictive_neuron import models_nn, funs
+from predictive_neuron import models, funs
 
 '---------------------------------------'
 'auxiliary functions plots'
@@ -107,13 +107,13 @@ def plot_network_activity(w,par):
     '---------------------------------------'
     'create network dynamics - first epoch'
     x_data = funs.get_sequence_nn_selforg_noise(par,timing)
-    network = models_nn.NetworkClass_SelfOrg(par)
+    network = models.NetworkClass_SelfOrg(par)
     network.w = nn.Parameter(torch.from_numpy(w[0,:])).to(par.device)
     network.state()
     network, v_before, z_before = network(par,network,x_data)
     'create network dynamics - final epoch'
     x_data = funs.get_sequence_nn_selforg_noise(par,timing)
-    network = models_nn.NetworkClass_SelfOrg(par)
+    network = models.NetworkClass_SelfOrg(par)
     network.w = nn.Parameter(torch.from_numpy(w[-1,:])).to(par.device)
     network.state()
     network, v_after, z_after = network(par,network,x_data)
