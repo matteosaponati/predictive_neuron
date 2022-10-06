@@ -3,8 +3,8 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"main_sequence_anticipation.py"
-single neuron trained on input sequences - Fig 2
+"main_sequence.py"
+single neuron trained on input sequences
 
 Author:
     

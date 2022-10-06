@@ -3,7 +3,7 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"sequence_example.py"
+"input_sequence_example.py"
 example of input sequence - Fig 2
 
 Author:

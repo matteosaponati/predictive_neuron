@@ -3,9 +3,8 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"stdp_froemke2006_frequency.py"
-'Froemke et al (2006) Contribution of inidividual spikes in burst-induced 
-long-term synaptic modification. Journal of Neuroscience'
+"stdp_symmetrical.py"
+reproduce symmetrical STDP windows with predictive plasticity
 
 Author:
     
@@ -25,19 +24,20 @@ plt.rc('axes', axisbelow=True)
 par = types.SimpleNamespace()
 par.device = 'cpu'
 par.dt = .05
-par.eta = 4e-5
-par.tau_m = 10.
-par.v_th = 2.
+par.eta = 2e-4
+par.tau_m = 5.
+par.v_th = .4
 par.tau_x = 2.
 par.bound = 'soft'
 
 'set inputs'
 par.N = 2
-par.T = int(500/par.dt)
-par.epochs = 40
+par.T = int(200/par.dt)
+par.epochs = 60
 
 'initial conditions'
-w_0 = np.array([.11,.006])
+w_0 = np.array([.007,.02])
+
 
 #%%
 
@@ -127,49 +127,53 @@ def train(par,neuron,x_data):
         w2.append(neuron.w[1].item())
         spk_out.append(z)
         v_out.append(v)
-        if e%10 == 0: print(e)
+        if e%50 == 0: print(e)
         
     return w1, w2, v_out, spk_out
 '---------------------------------------------'
-
 #%%
+
 """
-we reproduce the experimental protocol by increasing the pairing frequency
+we reproduce the classical pre-post pairing protocol by changing the delay
+between the two pre-synaptic inputs
 inputs:
-    1. dt_burst, dt: delay between pairing, delay between pre and post (in ms)
+    1. delay: range of delay considered
 """
-dt_burst, dt = [100.,20.,10.], 6
 
-w_post = []
+delay = (np.arange(0,50,4)/par.dt).astype(int)
 
-for k in (np.array(dt_burst)/par.dt).astype(int):
-
+w_prepost,w_postpre = [],[]
+spk_prepost,spk_postpre = [], []
+for k in range(len(delay)):
+    
     'set inputs'
-    timing = [np.arange(0,k*5,k),np.arange(0,k*5,k)+int(dt/par.dt)]
+    timing = np.array([0,0+ delay[k]]).astype(int)
     x_data = get_sequence_stdp(par,timing)
-    'numerical solutions'
+    
+    'pre-post pairing'
     neuron = NeuronClass_NumPy(par)
     neuron.w = w_0.copy()
     w1,w2,v,spk = train(par,neuron,x_data)
-    'get weights'
-    w_post.append(w2[-1])
-#%%
+    spk_prepost.append(spk)
+    w_prepost.append(w1[-1])
     
-savedir = '/Users/saponatim/Desktop/'
+    'post-pre pairing'
+    neuron = NeuronClass_NumPy(par)
+    neuron.w = w_0[::-1].copy()
+    w1,w2,v,spk = train(par,neuron,x_data)
+    spk_postpre.append(spk)
+    w_postpre.append(w2[-1])  
+    
+#%%
+'plot'
 fig = plt.figure(figsize=(6,6), dpi=300)
-plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
-plt.scatter(1e3/np.array(dt_burst),np.array(w_post)/w_0[1],color='rebeccapurple',s=40)
-plt.plot(1e3/np.array(dt_burst),np.array(w_post)/w_0[1],color='rebeccapurple',linewidth=2)
-'add experimental data'
-x = [10,50,100]
-y, y_e = [.7,.99,1.3],[.05,.05,.1]
-plt.scatter(x,y,color='k',s=20)
-plt.errorbar(x,y,yerr = y_e,color='k',linestyle='None')
-fig.tight_layout(rect=[0, 0.01, 1, 0.96])
-plt.xlabel(r'frequency [Hz]')
+plt.plot(-delay[::-1]*par.dt,w_prepost[::-1]/w_0[0],linewidth=2)
+plt.plot(delay*par.dt,w_postpre/w_0[0],linewidth=2)
+plt.xlabel(r'$\Delta t$ [ms]')
 plt.ylabel(r'$w/w_0$')
-#plt.ylim(.5,1.5)
-plt.savefig(savedir+'/stdp_froemke2006_frequency.pdf', format='pdf', dpi=300)
-plt.savefig(savedir+'/stdp_froemke2006_frequency.png', format='png', dpi=300)
+plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
+plt.axvline(x=0, color='black',linewidth=1.5)
+fig.tight_layout(rect=[0, 0.01, 1, 0.96])
+plt.savefig('stdp_window.png', format='png', dpi=300)
+plt.savefig('stdp_window.pdf', format='pdf', dpi=300)
 plt.close('all')
-

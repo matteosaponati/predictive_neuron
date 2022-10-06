@@ -3,7 +3,7 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"sequence_example_plots.py"
+"main_sequence_plots.py"
 make example plots - Fig 2
 
 Author:

@@ -1,115 +1,40 @@
-'Nevian et al (2006) Spine Ca2+ signaling in spike-timing-dependent plasticity - Journal of Neuroscience'
+"""
+----------------------------------------------
+Copyright (C) Vinck Lab
+-add copyright-
+----------------------------------------------
+"stdp_nevian2006.py"
+'Nevian et al (2006) Spine Ca2+ signaling in spike-timing-dependent plasticity
+Journal of Neuroscience'
+
+Author:
+    
+    Matteo Saponati
+    Vinck Lab, Ernst Struengmann Institute for Neuroscience
+    in cooperation with the Max-Planck Society
+----------------------------------------------
+"""
 
 import numpy as np
-import sys
-dir = ''
-maindir = dir+'fig1/'
-sys.path.append(dir), sys.path.append(maindir)
+import types
+import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 22})
+plt.rc('axes', axisbelow=True)
 
-#import neuron_model as model
-#import funs_stdp as funs
+'set model'
+par = types.SimpleNamespace()
+par.device = 'cpu'
+par.dt = .05
+par.eta = 1.8e-4
+par.tau_m = 10.
+par.v_th = 2.
+par.tau_x = 2.
+par.bound = 'soft'
 
-
-
-#%%
-
-
-'preallocation of relevant variables'
-def preallocation(N,T,epochs,p_num):
-    var = {}
-    var['time'] = np.arange(0,T,p_num['dt'])
-    var['v'] = [np.zeros_like(var['time']) for k in range(epochs)]
-    var['w'] = [np.zeros((N,len(var['time']))) for k in range(epochs)]
-    var['loss'] = np.zeros(epochs)
-    var['v_spk'] = [[] for k in range(epochs)]
-    return var
-
-'create input pattern'
-def sequence(N,timing,size,tau,T,p_num):    
-    n_steps = int(T/p_num['dt'])
-    inputs = np.zeros((N,n_steps))
-    for k in range(N):
-        inputs[k,np.array(timing[k]/p_num['dt']).astype('int')]= size
-        inputs[k,:] = np.convolve(inputs[k,:],np.exp(-np.arange(0,T,p_num['dt'])/tau))[:n_steps]        
-    return inputs
-
-class neuron_module:
-    
-    def __init__(self,N,p_num,w_0):
-        self.eta, self.tau, self.v_th, self.dt = p_num['eta'], p_num['tau'], p_num['v_th'], p_num['dt']
-        self.N = N
-        self.v = 0
-        self.p, self.epsilon = np.zeros(N),  np.zeros(N)
-        self.w = w_0.copy()
-        self.grad_w1, self.grad_w2 = np.zeros(N), np.zeros(N)
-        self.gamma = p_num['gamma']
-
-    def num_step(self,x,p_num):    
-        def error(x,v,w):
-            return x - w*v
-        def grad_w1(epsilon,w,p):
-            return np.dot(epsilon,w)*p
-        def grad_w2(epsilon,v):
-            return epsilon*v
-        def surr_grad(v,gamma,v_th):
-            return gamma*(1/(np.abs(v - v_th)+1.0)**2)   
-        
-        'compute prediction error (eq. 10)'
-        self.epsilon = error(x,self.v,self.w)
-        'compute gradient and update weight vector (eq 14 and eq 16)'
-        self.grad_w1, self.grad_w2  = grad_w1(self.epsilon,self.w,self.p), grad_w2(self.epsilon,self.v) 
-        self.w = self.w + self.w*self.eta*(self.grad_w1 + self.grad_w2)
-#        self.w = self.w + self.eta*(self.grad_w1 + self.grad_w2)
-        'update recursive part of the gradient (eq 8)'
-        self.p = ((1-self.dt/self.tau) + surr_grad(self.v,self.gamma,self.v_th))*self.p + x
-        'update membrane voltage (eq 2)'
-        self.v = (1-self.dt/self.tau)*self.v + np.dot(self.w,x)
-        if self.v > self.v_th:
-            self.v = self.v - self.v_th
-            out = 1
-        else: out = 0
-        
-        return out 
-
-def train(inputs,N,epochs,T,w_0,p_num):
-    
-    'objective function'
-    def loss(x,w,v):
-        return np.linalg.norm(x-v*w)
-    'preallocation of variables'
-    var = preallocation(N,T,epochs,p_num)
-    neuron = neuron_module(N,p_num,w_0)
-    
-    for e in range(epochs):
-        'numerical solution'
-        for t in range(int(T/p_num['dt'])):
-            var['loss'][e] += loss(inputs[:,t],neuron.v,neuron.w)
-            spk = neuron.num_step(inputs[:,t],p_num)
-            if spk == 1: var['v_spk'][e].append(var['time'][t])        
-            'allocate variables'
-            var['v'][e][t] = neuron.v
-            var['w'][e][:,t] = neuron.w
-        'reinitialize'
-        neuron = neuron_module(N,p_num,neuron.w)
-    
-    return var
-#%%
-
-'model parameters'
-p_num = {}
-p_num['dt'] = .05
-p_num['eta'] = 1.8e-4
-p_num['tau'] = 10.
-p_num['v_th'] = 2.
-p_num['gamma'] = .02
-
-'initial conditions'
-w_0_pre = np.array([.01,.08,])
-w_0_post = np.array([.08,.01])
-
-'simulation parameters'
-T, epochs = 300, 60
-tau_x, A_x = 2, 1
+'set inputs'
+par.N  = 2
+par.T = int(300/par.dt)
+par.epochs = 60
 
 """
 we reproduce the experimental protocol by increasing the frequency of post bursts
@@ -118,35 +43,136 @@ inputs:
     2. dt_burst, dt: delay between post spikes, delay between pre and first post
 """
 n_spikes = 3
-dt_burst, dt = np.array([10.,20.,50.]), 10.
+dt_burst, dt = (np.array([10.,20.,50.])/par.dt).astype(int), int(10./par.dt)
+
+'set initial conditions'
+w_0_pre = np.array([.01,.08,])
+w_0_post = np.array([.08,.01])
+
+#%%
+
+'create input pattern'
+def get_sequence_stdp(par,timing):    
+    x_data = np.zeros((par.N,par.T))
+    for n in range(par.N):
+        x_data[n,timing[n]]= 1
+        x_data[n,:] = np.convolve(x_data[n,:],
+                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]        
+    return x_data
+  
+class NeuronClass_NumPy():
+    """
+    NEURON MODEL (Numpy version - online update)
+    - get the input vector at the current timestep
+    - compute the current prediction error
+    - update the recursive part of the gradient and the membrane potential
+    - thresholding nonlinearity and evaluation of output spike
+    inputs:
+        par: model parameters
+    """
+    
+    def __init__(self,par):
+        
+        self.par = par  
+        self.alpha = (1-self.par.dt/self.par.tau_m)              
+        self.w = np.zeros(self.par.N)
+        
+    def state(self):
+        """initialization of neuron state"""
+        
+        self.v = 0
+        self.z = 0
+        self.p = np.zeros(self.par.N)
+        self.epsilon = np.zeros(self.par.N)
+        self.grad = np.zeros(self.par.N)
+    
+    def __call__(self,x):
+        
+        'compute prediction error (eq 4) and update parameters (eq 3)'
+        self.epsilon =  x - self.w*self.v
+        self.grad = self.v*self.epsilon + np.dot(self.epsilon,self.w)*self.p
+        if self.par.bound == 'soft':
+            self.w = self.w + self.w*self.par.eta*self.grad
+        elif self.par.bound == 'hard':
+            self.w = self.w + self.par.eta*self.grad
+            self.w = np.where(self.w<0,np.zeros_like(self.w),self.w)
+        else: self.w = self.w + self.par.eta*self.grad
+        
+        'update eligibility traces'
+        self.p = self.alpha*self.p + x
+        
+        'update membrane voltage (eq 1)'
+        self.v = self.alpha*self.v + np.dot(x,self.w) 
+        if self.v-self.par.v_th>0: 
+            self.z = 1
+            self.v = self.v - self.par.v_th
+        else: self.z = 0
+
+#%%
+        
+'----------------'
+def forward(par,neuron,x_data):
+    
+    v,z = [], []
+    for t in range(par.T):    
+        v.append(neuron.v) 
+        neuron(x_data[:,t])  
+        
+        if neuron.z != 0: z.append(t*par.dt)    
+    return neuron, v, z
+
+
+def train(par,neuron,x_data):
+    w1, w2 = [], []
+    spk_out = []
+    v_out = []
+    'training'
+    for e in range(par.epochs):
+        
+        neuron.state()
+        neuron, v, z = forward(par,neuron,x_data)
+        
+        'output'
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        spk_out.append(z)
+        v_out.append(v)
+        if e%10 == 0: print(e)
+        
+    return w1, w2, v_out, spk_out
+'---------------------------------------------'
+
+#%%
+
+'training (pre-post protocol)'
 w_pre,w_post = [],[]
 for j in dt_burst:
     
-    'set inputs'
     print('solving {} dt'.format(j))
-    timing_pre = [np.array(0.),np.arange(dt,j*n_spikes + j,j)] 
-    timing_post = [np.arange(0.,j*n_spikes + j,j),np.array(j*n_spikes+ dt)]     
-    inputs_pre = sequence(len(w_0_pre),timing_pre,A_x,tau_x,T,p_num)        
-    inputs_post = sequence(len(w_0_post),timing_post,A_x,tau_x,T,p_num)        
-    'numerical solution'
-    var_pre = train(inputs_pre,len(w_0_pre),epochs,T,w_0_pre,p_num)
-    var_post= train(inputs_post,len(w_0_post),epochs,T,w_0_post,p_num)
-    'get weights'
-    w_pre.append(var_pre['w'][-1][0,-1])
-    w_post.append(var_post['w'][-1][1,-1])
-
+    
+    'pre-post protocol'
+    timing = [np.array(0),np.arange(dt,j*n_spikes + j,j)] 
+    x_data = get_sequence_stdp(par,timing)
+    neuron = NeuronClass_NumPy(par)
+    neuron.w = w_0_pre
+    w1,w2,v,spk = train(par,neuron,x_data)
+    w_pre.append(w1[-1])
+    
+    'post-pre protocol'
+    timing = [np.arange(0,j*n_spikes + j,j),np.array(j*n_spikes+ dt)]     
+    x_data = get_sequence_stdp(par,timing)
+    neuron = NeuronClass_NumPy(par)
+    neuron.w = w_0_post
+    w1,w2,v,spk = train(par,neuron,x_data)
+    w_pre.append(w2[-1])
 
 #%%
-    
-import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 22})
-plt.rc('axes', axisbelow=True)
 
-savedir = '/Users/saponatim/Desktop/predictive_neuron/paper_review/fig_stdp/'
+savedir = '/Users/saponatim/Desktop/'
 fig = plt.figure(figsize=(6,6), dpi=300)
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.plot(1e3/dt_burst[::-1],np.array(w_pre)[::-1]/w_0_pre[0],color='royalblue',linewidth=2,label='pre-post')
-plt.plot(1e3/dt_burst[::-1],np.array(w_post)[::-1]/w_0_post[1],color='rebeccapurple',linewidth=2,label='post-pre')
+#plt.plot(1e3/dt_burst[::-1],np.array(w_post)[::-1]/w_0_post[1],color='rebeccapurple',linewidth=2,label='post-pre')
 'add experimental data'
 x = [20,50,100]
 y_pre, y_pre_e = [1.1,2,2.25],[.3,.3,.6]
@@ -162,11 +188,3 @@ plt.ylabel(r'$w/w_0$')
 plt.savefig(savedir+'/burst_effect_stdp.png', format='png', dpi=300)
 plt.savefig(savedir+'/burst_effect_stdp.pdf', format='pdf', dpi=300)
 plt.close('all')
-
-
-#%%
-
-'RMS error'
-y_pre, y_post = [1.1,2,2.25], [.74,.74,.55]
-error_pre = np.sqrt(np.sum((np.array(w_pre)[::-1]/w_0_pre[0] - np.array(y_pre))**2)/len(y_pre))
-error_post = np.sqrt(np.sum((np.array(w_post)[::-1]/w_0_post[1] - np.array(y_post))**2)/len(y_post))
