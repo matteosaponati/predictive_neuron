@@ -108,7 +108,7 @@ class NeuronClass(nn.Module):
 
 class NeuronClass_NumPy():
     """
-    NEURON MODEL (NumPy version)
+    NEURON MODEL (Numpy version - online update)
     - get the input vector at the current timestep
     - compute the current prediction error
     - update the recursive part of the gradient and the membrane potential
@@ -125,32 +125,35 @@ class NeuronClass_NumPy():
         
     def state(self):
         """initialization of neuron state"""
+        
         self.v = 0
         self.z = 0
         self.p = np.zeros(self.par.N)
         self.epsilon = np.zeros(self.par.N)
         self.grad = np.zeros(self.par.N)
-        
+    
     def __call__(self,x):
         
         'compute prediction error (eq 4) and update parameters (eq 3)'
-        self.epsilon =  x - self.v*self.w
+        self.epsilon =  x - self.w*self.v
         self.grad = self.v*self.epsilon + np.dot(self.epsilon,self.w)*self.p
-        
         if self.par.bound == 'soft':
-            self.w = self.w + self.w*self.par.eta*self.w*self.grad
-        if self.par.bound == 'hard':
+            self.w = self.w + self.w*self.par.eta*self.grad
+        elif self.par.bound == 'hard':
             self.w = self.w + self.par.eta*self.grad
             self.w = np.where(self.w<0,np.zeros_like(self.w),self.w)
         else: self.w = self.w + self.par.eta*self.grad
         
+        'update eligibility traces'
         self.p = self.alpha*self.p + x
         
         'update membrane voltage (eq 1)'
-        self.v = self.alpha*self.v + np.dot(x,self.w) - self.par.v_th*self.z
-        if self.v-self.par.v_th>0: self.z = 1
+        self.v = self.alpha*self.v + np.dot(x,self.w) 
+        if self.v-self.par.v_th>0: 
+            self.z = 1
+            self.v = self.v - self.par.v_th
         else: self.z = 0
-        
+
 '------------------'
 '------------------'
 

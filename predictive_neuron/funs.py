@@ -29,15 +29,15 @@ def get_firing_rate(par,x,Dt=1):
         fr.append((torch.sum(x[:,k*bin:(k+1)*bin])*(1e3/Dt))/par.N)
     
     return np.array(fr)
-
-def get_density(par,x):
-    
-    bins = np.arange(par.T).tolist()
-    step = int(par.tau_m/par.dt)
-    bins = [bins[i:i+step] for i in range(0,len(bins),int(1/par.dt))]
-    density = [torch.sum(x[0,bins[k],:]).item() for k in range(len(bins))]
-
-    return density
+#
+#def get_density(par,x):
+#    
+#    bins = np.arange(par.T).tolist()
+#    step = int(par.tau_m/par.dt)
+#    bins = [bins[i:i+step] for i in range(0,len(bins),int(1/par.dt))]
+#    density = [torch.sum(x[0,bins[k],:]).item() for k in range(len(bins))]
+#
+#    return density
 
 '--------------'
 
@@ -67,7 +67,7 @@ def get_sequence(par,timing):
     
     return x_data.permute(0,2,1)
 
-def get_sequence_density(par,timing):
+def get_sequence_fr(par,timing):
     
     if par.offset == True: timing += np.random.randint(0,par.T/2)
         
@@ -85,10 +85,10 @@ def get_sequence_density(par,timing):
     else:
         x_data[:,timing,range(len(timing))] = 1
              
-    density = get_density(par,x_data)
+#    density = get_density(par,x_data)
     fr = get_firing_rate(par,x_data)
     
-    return density, fr
+    return fr
 
 def sequence_capacity(par,timing):
     
@@ -115,19 +115,66 @@ def sequence_capacity(par,timing):
 
     return x_data.permute(0,2,1)
 
+'--------------'
+
+'get sequence - NumPy version'
+def get_sequence_NumPy(par,timing):
+    
+    x_data = np.zeros((par.N,par.T))
+    
+    for n in range(par.N):
+        x_data[n,timing[n]]= 1
+        x_data[n,:] = np.convolve(x_data[n,:],
+                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
+        
+    return x_data
+
+'numerical solution and training for sequences - NumPy version'
+def train_NumPy(par,neuron,x_data):
+    w1, w2 = [], []
+    v_tot, spk_tot = [],[]
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, v, spk = forward(par,neuron,x_data)    
+        v_tot.append(v)
+        spk_tot.append(spk)
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%100 == 0: print(e)        
+    return w1, w2, v_tot, spk_tot
+
+'--------------'
+
+'pre-synaptic inputs for STDP - NumPy version'
 def get_sequence_stdp(par,timing):
     
-    x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)    
-    x_data[:,timing,range(par.N_stdp)]= 1
-    density = get_density(par,x_data)
+    x_data = np.zeros((par.N,par.T))
     
-    'synaptic time constant'
-    filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
-                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
-    x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
-                         padding=par.T,groups=par.N)[:,:,1:par.T+1]
+    for n in range(par.N):
+        x_data[n,timing[n]]= 1
+        x_data[n,:] = np.convolve(x_data[n,:],
+                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
+        
+    return x_data
 
-    return x_data.permute(0,2,1), density
+'numerical solution and training for STDP - NumPy version'
+def forward(par,neuron,x_data):    
+    v,z = [], []
+    for t in range(par.T):    
+        v.append(neuron.v) 
+        neuron(x_data[:,t])          
+        if neuron.z != 0: z.append(t*par.dt)    
+    return neuron, v, z
+def train(par,neuron,x_data):
+    w1, w2 = [], []
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, v, z = forward(par,neuron,x_data)        
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%10 == 0: print(e)        
+    return w1, w2
+'---------------------------------------------'
 
 '--------------'
 
