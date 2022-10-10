@@ -19,7 +19,7 @@ import torch
 import torch.nn.functional as F
 import matplotlib.colors as colors
 
-'--------------'
+'---------------------------------------------'
 
 def get_firing_rate(par,x,Dt=1):
     
@@ -29,18 +29,8 @@ def get_firing_rate(par,x,Dt=1):
         fr.append((torch.sum(x[:,k*bin:(k+1)*bin])*(1e3/Dt))/par.N)
     
     return np.array(fr)
-#
-#def get_density(par,x):
-#    
-#    bins = np.arange(par.T).tolist()
-#    step = int(par.tau_m/par.dt)
-#    bins = [bins[i:i+step] for i in range(0,len(bins),int(1/par.dt))]
-#    density = [torch.sum(x[0,bins[k],:]).item() for k in range(len(bins))]
-#
-#    return density
 
-'--------------'
-
+'get sequence - PyTorch version'
 def get_sequence(par,timing):
     
     if par.offset == True: timing += np.random.randint(0,par.T/2)
@@ -85,7 +75,6 @@ def get_sequence_fr(par,timing):
     else:
         x_data[:,timing,range(len(timing))] = 1
              
-#    density = get_density(par,x_data)
     fr = get_firing_rate(par,x_data)
     
     return fr
@@ -118,34 +107,47 @@ def sequence_capacity(par,timing):
 '--------------'
 
 'get sequence - NumPy version'
-def get_sequence_NumPy(par,timing):
+# def get_sequence_NumPy(par,timing):
     
-    x_data = np.zeros((par.N,par.T))
+#     x_data = np.zeros((par.N,par.T))
     
+#     for n in range(par.N):
+#         x_data[n,timing[n]]= 1
+#         x_data[n,:] = np.convolve(x_data[n,:],
+#                       np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
+        
+#     return x_data
+
+
+'define dataset'
+def get_sequence_NumPy(par,timing,onset):
+    
+    'set random input onset'
+    if par.onset == True: timing = timing.copy() + onset
+    
+    'set background firing'
+    if par.freq_noise == True:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+        x_data = np.zeros((par.N,par.T))
+        for n in range(par.N): x_data[n,:][np.random.rand(par.T)<prob[n]] = 1        
+    else: x_data = np.zeros((par.N,par.T))
+
+    'set jitter'        
+    if par.jitter_noise == True:
+        # x_data[:,0:timing[-1]] = 0
+        timing_err = np.array(timing) \
+                        + (np.random.randint(-par.jitter,par.jitter,len(timing)))/par.dt
+        x_data[range(par.N_seq),timing_err.astype(int).tolist()] = 1
+    else: x_data[range(par.N_seq),timing] = 1
+        
+    'synaptic time constant'
     for n in range(par.N):
-        x_data[n,timing[n]]= 1
         x_data[n,:] = np.convolve(x_data[n,:],
                       np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
         
     return x_data
 
-'numerical solution and training for sequences - NumPy version'
-def train_NumPy(par,neuron,x_data):
-    w1, w2 = [], []
-    v_tot, spk_tot = [],[]
-    for e in range(par.epochs):        
-        neuron.state()
-        neuron, v, spk = forward(par,neuron,x_data)    
-        v_tot.append(v)
-        spk_tot.append(spk)
-        w1.append(neuron.w[0].item())
-        w2.append(neuron.w[1].item())
-        if e%100 == 0: print(e)        
-    return w1, w2, v_tot, spk_tot
-
-'--------------'
-
-'pre-synaptic inputs for STDP - NumPy version'
+'pre-synaptic inputs for STDP protocols'
 def get_sequence_stdp(par,timing):
     
     x_data = np.zeros((par.N,par.T))
@@ -157,26 +159,7 @@ def get_sequence_stdp(par,timing):
         
     return x_data
 
-'numerical solution and training for STDP - NumPy version'
-def forward(par,neuron,x_data):    
-    v,z = [], []
-    for t in range(par.T):    
-        v.append(neuron.v) 
-        neuron(x_data[:,t])          
-        if neuron.z != 0: z.append(t*par.dt)    
-    return neuron, v, z
-def train(par,neuron,x_data):
-    w1, w2 = [], []
-    for e in range(par.epochs):        
-        neuron.state()
-        neuron, v, z = forward(par,neuron,x_data)        
-        w1.append(neuron.w[0].item())
-        w2.append(neuron.w[1].item())
-        if e%10 == 0: print(e)        
-    return w1, w2
 '---------------------------------------------'
-
-'--------------'
 
 def get_sequence_nn_selforg(par):
     
@@ -255,8 +238,7 @@ def get_multisequence_nn(par,timing):
 
     return torch.stack(x_data,dim=3)
 
-'--------------------'
-'--------------------'
+'---------------------------------------------'
 
 "auxiliary functions plots"
 
