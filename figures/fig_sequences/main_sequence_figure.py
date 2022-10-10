@@ -55,7 +55,7 @@ def train(par):
     'initialization'
     if par.init == 'trunc_gauss':
         neuron.w = nn.Parameter(torch.empty(par.N)).to(par.device)
-        torch.nn.init.trunc_normal_(neuron.w, mean=par.init_mean, std=.1/np.sqrt(par.N),
+        torch.nn.init.trunc_normal_(neuron.w, mean=par.init_mean, std=1/np.sqrt(par.N),
                                     a=par.init_a,b=par.init_b)
     if par.init == 'fixed':
         neuron.w = nn.Parameter(par.w_0*torch.ones(par.N)).to(par.device)

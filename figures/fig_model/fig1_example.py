@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from predictive_neuron import models, funs
+from predictive_neuron import models, funs, funs_train
 
 'set model'
 par = types.SimpleNamespace()
@@ -37,7 +37,7 @@ par.N = 2
 par.T = int(100/par.dt)
 par.epochs = 300
 timing = (np.array([2.,6.])/par.dt).astype(int)
-x_data = funs.get_sequence_NumPy(par,timing)
+x_data = funs.get_sequence_stdp(par,timing)
 
 '----------'
 '----------'
@@ -56,7 +56,7 @@ for k in range(len(w_0)):
     'numerical solution'
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0[k]*np.ones(par.N)
-    w1,w2,v,spk = funs.train_NumPy(par,neuron,x_data)
+    w1,w2,v,spk,_ = funs_train.train_NumPy(par,neuron,x_data)
     
     w1_tot.append(w1)
     w2_tot.append(w2)
@@ -97,8 +97,9 @@ plt.savefig('w_convergence.pdf',format='pdf', dpi=300)
 plt.close('all')
 
 fig = plt.figure(figsize=(6,6), dpi=300)
-plt.plot(v_tot[2][0],color='navy',linewidth=2)
-plt.plot(v_tot[2][100],color='blue',linewidth=2)
+plt.plot(v_tot[2][0],color='navy',linewidth=2,label='epoch 0')
+plt.plot(v_tot[2][100],color='blue',linewidth=2,label='epoch 100')
+plt.legend()
 plt.xlabel(r'time')
 
 '----------'
@@ -120,7 +121,7 @@ for k in range(len(w_sweep)):
         'numerical solution'
         neuron = models.NeuronClass_NumPy(par)
         neuron.w = np.array([w_sweep[k],w_sweep[j]])
-        w1,w2,v,spk = funs.train_NumPy(par,neuron,x_data)
+        w1,w2,v,spk = funs_train.train_NumPy(par,neuron,x_data)
         w_1[k,j] = w1[-1]
         w_2[k,j] = w2[-1]
         
