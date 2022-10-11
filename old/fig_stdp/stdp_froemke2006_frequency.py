@@ -9,10 +9,10 @@ plt.rc('axes', axisbelow=True)
 'model parameters'
 p_num = {}
 p_num['dt'] = .05
-p_num['eta'] = 1e-6
+p_num['eta'] = 5e-5
 p_num['tau'] = 10.
 p_num['v_th'] = 2.
-p_num['gamma'] = .0
+p_num['gamma'] = .02
 
 'initial conditions'
 w_0 = np.array([.11,.001])
@@ -70,7 +70,7 @@ class neuron_module:
         self.w = self.w + self.w*self.eta*(self.grad_w1 + self.grad_w2)
 #        self.w = self.w + self.eta*(self.grad_w1 + self.grad_w2)
         'update recursive part of the gradient (eq 8)'
-        self.p = (1-self.dt/self.tau)*self.p + x # surr_grad(self.v,self.gamma,self.v_th))*self.p + x
+        self.p = ((1-self.dt/self.tau) + surr_grad(self.v,self.gamma,self.v_th))*self.p + x
         'update membrane voltage (eq 2)'
         self.v = (1-self.dt/self.tau)*self.v + np.dot(self.w,x)
         if self.v > self.v_th:
@@ -113,7 +113,8 @@ inputs:
 dt_burst, dt = [100,20,10], 6
 w_post = []
 for k in dt_burst:
-
+    
+    print(k)
     'set inputs'
     timing = [np.arange(0,k*5,k),np.arange(0,k*5,k)+dt]
     inputs = sequence(len(timing),timing,A_x,tau_x,T,p_num)
@@ -124,8 +125,8 @@ for k in dt_burst:
 
  #%%
 'plots'
-savedir = '/Users/saponatim/Desktop/'
-fig = plt.figure(figsize=(6,6), dpi=300)
+#savedir = '/Users/saponatim/Desktop/'
+#fig = plt.figure(figsize=(6,6), dpi=300)
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.scatter(1e3/np.array(dt_burst),np.array(w_post)/w_0[1],color='rebeccapurple',s=40)
 plt.plot(1e3/np.array(dt_burst),np.array(w_post)/w_0[1],color='rebeccapurple',linewidth=2)
@@ -134,10 +135,11 @@ x = [10,50,100]
 y, y_e = [.7,.99,1.3],[.05,.05,.1]
 plt.scatter(x,y,color='k',s=20)
 plt.errorbar(x,y,yerr = y_e,color='k',linestyle='None')
-fig.tight_layout(rect=[0, 0.01, 1, 0.96])
+#fig.tight_layout(rect=[0, 0.01, 1, 0.96])
 plt.xlabel(r'frequency [Hz]')
 plt.ylabel(r'$w/w_0$')
 plt.ylim(.5,1.5)
+#%%
 plt.savefig(savedir+'/stdp_froemke2006_frequency.pdf', format='pdf', dpi=300)
 plt.savefig(savedir+'/stdp_froemke2006_frequency.png', format='png', dpi=300)
 plt.close('all')

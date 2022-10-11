@@ -9,8 +9,6 @@ sys.path.append(dir), sys.path.append(maindir)
 #import neuron_model as model
 #import funs_stdp as funs
 
-
-
 #%%
 
 
@@ -99,16 +97,17 @@ def train(inputs,N,epochs,T,w_0,p_num):
 p_num = {}
 p_num['dt'] = .05
 p_num['eta'] = 4e-4
-p_num['tau'] = 12.
+p_num['tau'] = 10.
 p_num['v_th'] = 2.
 p_num['gamma'] = .0
 
 'initial conditions'
 w_0_pre = np.array([.01,.08,])
+
 w_0_post = np.array([.08,.01])
 
 'simulation parameters'
-T, epochs = 300, 60
+T, epochs = 2000, 60
 tau_x, A_x = 2, 1
 
 """
@@ -124,8 +123,8 @@ for j in dt_burst:
     
     'set inputs'
     print('solving {} dt'.format(j))
-    timing_pre = [np.array(0.),np.arange(dt,j*n_spikes + j,j)] 
-    timing_post = [np.arange(0.,j*n_spikes + j,j),np.array(j*n_spikes+ dt)]     
+    timing_pre = [np.array(0),dt+np.arange(0,j*n_spikes,j)]
+    timing_post = [np.arange(0,j*n_spikes,j),np.array(np.arange(0,j*n_spikes,j)[-1]+ dt)]     
     inputs_pre = sequence(len(w_0_pre),timing_pre,A_x,tau_x,T,p_num)        
     inputs_post = sequence(len(w_0_post),timing_post,A_x,tau_x,T,p_num)        
     'numerical solution'
