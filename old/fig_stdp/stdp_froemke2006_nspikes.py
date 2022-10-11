@@ -21,7 +21,6 @@ w_0 = np.array([.1,.027])
 T, epochs = 300, 30
 tau_x, A_x = 2, 1
 
-
 'preallocation of relevant variables'
 def preallocation(N,T,epochs,p_num):
     var = {}
@@ -102,6 +101,7 @@ def train(inputs,N,epochs,T,w_0,p_num):
     
     return var
 
+#%%
 """
 we reproduce the experimental protocol by increasing the number of post spikes
 inputs:
@@ -121,9 +121,10 @@ for k in np.arange(1,n_spk+1):
     'get weights'
     w_post.append(var['w'][-1][1,-1])
 
+#%%
 'plots'
-savedir = '/Users/saponatim/Desktop/predictive_neuron/paper_review/fig_stdp/'
-fig = plt.figure(figsize=(6,6), dpi=300)
+#savedir = '/Users/saponatim/Desktop/predictive_neuron/paper_review/fig_stdp/'
+#fig = plt.figure(figsize=(6,6), dpi=300)
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.plot(np.arange(1,n_spk+1),np.array(w_post)/w_0[1],color='rebeccapurple',linewidth=2)
 'add experimental data'
@@ -131,14 +132,14 @@ x = [1,2,3,4,5]
 y, y_e = [.7,.8,.9,1.02,1.2],[.1,.1,.1,.05,.05]
 plt.scatter(x,y,color='k',s=20)
 plt.errorbar(x,y,yerr = y_e,color='k',linestyle='None')
-fig.tight_layout(rect=[0, 0.01, 1, 0.96])
-plt.ylabel(r'$w/w_0$')
-plt.xlabel(r'# spikes')
-plt.xticks(np.arange(1,n_spk+1),np.arange(1,n_spk+1))
-plt.ylim(.5,1.5)
-plt.savefig(savedir+'/stdp_froemke2006.pdf', format='pdf', dpi=300)
-plt.savefig(savedir+'/stdp_froemke2006.png', format='png', dpi=300)
-plt.close('all')
+#fig.tight_layout(rect=[0, 0.01, 1, 0.96])
+#plt.ylabel(r'$w/w_0$')
+#plt.xlabel(r'# spikes')
+#plt.xticks(np.arange(1,n_spk+1),np.arange(1,n_spk+1))
+#plt.ylim(.5,1.5)
+#plt.savefig(savedir+'/stdp_froemke2006.pdf', format='pdf', dpi=300)
+#plt.savefig(savedir+'/stdp_froemke2006.png', format='png', dpi=300)
+#plt.close('all')
 #%%
 "RMS error"
 y = [.7,.8,.9,1.02,1.2]
