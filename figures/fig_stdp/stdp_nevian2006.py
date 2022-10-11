@@ -25,7 +25,7 @@ plt.rc('axes', axisbelow=True)
 par = types.SimpleNamespace()
 par.device = 'cpu'
 par.dt = .05
-par.eta = 1.8e-4
+par.eta = 3e-4
 par.tau_m = 10.
 par.v_th = 2.
 par.tau_x = 2.
@@ -46,8 +46,8 @@ n_spikes = 3
 dt_burst, dt = (np.array([10.,20.,50.])/par.dt).astype(int), int(10./par.dt)
 
 'set initial conditions'
-w_0_pre = np.array([.01,.08,])
-w_0_post = np.array([.08,.01])
+w_0_pre = np.array([.02,.09,])
+w_0_post = np.array([.09,.02])
 
 #%%
 
@@ -142,37 +142,43 @@ def train(par,neuron,x_data):
     return w1, w2, v_out, spk_out
 '---------------------------------------------'
 
+
 #%%
 
 'training (pre-post protocol)'
 w_pre,w_post = [],[]
+spk_pre,spk_post = [],[]
 for j in dt_burst:
     
     print('solving {} dt'.format(j))
     
     'pre-post protocol'
-    timing = [np.array(0),np.arange(dt,j*n_spikes + j,j)] 
-    x_data = get_sequence_stdp(par,timing)
+    timing_pre = [np.array(0),dt+np.arange(0,j*n_spikes,j)]
+    'post-pre protocol'
+    timing_post = [np.arange(0,j*n_spikes,j),np.array(np.arange(0,j*n_spikes,j)[-1]+ dt)] 
+    
+    'pre-post protocol'
+    x_data = get_sequence_stdp(par,timing_pre)
     neuron = NeuronClass_NumPy(par)
     neuron.w = w_0_pre
     w1,w2,v,spk = train(par,neuron,x_data)
     w_pre.append(w1[-1])
+    spk_pre.append(spk)
     
-    'post-pre protocol'
-    timing = [np.arange(0,j*n_spikes + j,j),np.array(j*n_spikes+ dt)]     
-    x_data = get_sequence_stdp(par,timing)
+    'post-pre protocol'  
+    x_data = get_sequence_stdp(par,timing_post)
     neuron = NeuronClass_NumPy(par)
     neuron.w = w_0_post
     w1,w2,v,spk = train(par,neuron,x_data)
-    w_pre.append(w2[-1])
+    w_post.append(w2[-1])
+    spk_post.append(spk)
 
 #%%
-
-savedir = '/Users/saponatim/Desktop/'
 fig = plt.figure(figsize=(6,6), dpi=300)
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
-plt.plot(1e3/dt_burst[::-1],np.array(w_pre)[::-1]/w_0_pre[0],color='royalblue',linewidth=2,label='pre-post')
-#plt.plot(1e3/dt_burst[::-1],np.array(w_post)[::-1]/w_0_post[1],color='rebeccapurple',linewidth=2,label='post-pre')
+plt.plot(1e3/(dt_burst[::-1]*par.dt),np.array(w_pre)[::-1]/w_0_pre[0],color='royalblue',linewidth=2,label='pre-post')
+plt.plot(1e3/(dt_burst[::-1]*par.dt),np.array(w_post)[::-1]/w_0_post[1],color='rebeccapurple',linewidth=2,label='post-pre')
+
 'add experimental data'
 x = [20,50,100]
 y_pre, y_pre_e = [1.1,2,2.25],[.3,.3,.6]
@@ -185,6 +191,6 @@ plt.errorbar(x,y_post,yerr = y_post_e,color='k',linestyle='None')
 fig.tight_layout(rect=[0, 0.01, 1, 0.96])
 plt.xlabel(r'frequency [Hz]')
 plt.ylabel(r'$w/w_0$')
-plt.savefig(savedir+'/burst_effect_stdp.png', format='png', dpi=300)
-plt.savefig(savedir+'/burst_effect_stdp.pdf', format='pdf', dpi=300)
+plt.savefig('/stdp_nevian2006.png', format='png', dpi=300)
+plt.savefig('/stdp_nevian2006.pdf', format='pdf', dpi=300)
 plt.close('all')

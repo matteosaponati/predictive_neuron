@@ -27,7 +27,7 @@ par.device = 'cpu'
 par.dt = .05
 par.eta = 4e-5
 par.tau_m = 10.
-par.v_th = 2.
+par.v_th = 2.5
 par.tau_x = 2.
 par.bound = 'soft'
 
@@ -37,7 +37,7 @@ par.T = int(500/par.dt)
 par.epochs = 40
 
 'initial conditions'
-w_0 = np.array([.11,.006])
+w_0 = np.array([.12,.005])
 
 #%%
 
@@ -138,14 +138,26 @@ we reproduce the experimental protocol by increasing the pairing frequency
 inputs:
     1. dt_burst, dt: delay between pairing, delay between pre and post (in ms)
 """
-dt_burst, dt = [100.,20.,10.], 6
+dt_burst, dt = (np.array([100.,20.,10.])/par.dt).astype(int) , int(6/par.dt)
 
+
+
+timing_tot = []
+for k in dt_burst:
+    timing_tot.append([np.arange(0,k*5,k),np.arange(0,k*5,k)+dt])
+    
+#for k in dt_burst:
+#
+#    'set inputs'
+#    timing_tot.append([np.arange(0,k*5,k),np.arange(0,k*5,k)+dt])
+
+#%%
 w_post = []
-
-for k in (np.array(dt_burst)/par.dt).astype(int):
+spk_tot = []
+for k in dt_burst:
 
     'set inputs'
-    timing = [np.arange(0,k*5,k),np.arange(0,k*5,k)+int(dt/par.dt)]
+    timing = [np.arange(0,k*5,k),np.arange(0,k*5,k)+dt]
     x_data = get_sequence_stdp(par,timing)
     'numerical solutions'
     neuron = NeuronClass_NumPy(par)
@@ -153,13 +165,14 @@ for k in (np.array(dt_burst)/par.dt).astype(int):
     w1,w2,v,spk = train(par,neuron,x_data)
     'get weights'
     w_post.append(w2[-1])
+    spk_tot.append(spk)
 #%%
     
 savedir = '/Users/saponatim/Desktop/'
 fig = plt.figure(figsize=(6,6), dpi=300)
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
-plt.scatter(1e3/np.array(dt_burst),np.array(w_post)/w_0[1],color='rebeccapurple',s=40)
-plt.plot(1e3/np.array(dt_burst),np.array(w_post)/w_0[1],color='rebeccapurple',linewidth=2)
+plt.scatter(1e3/(np.array(dt_burst)*par.dt),np.array(w_post)/w_0[1],color='rebeccapurple',s=40)
+plt.plot(1e3/(np.array(dt_burst)*par.dt),np.array(w_post)/w_0[1],color='rebeccapurple',linewidth=2)
 'add experimental data'
 x = [10,50,100]
 y, y_e = [.7,.99,1.3],[.05,.05,.1]
