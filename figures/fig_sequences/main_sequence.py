@@ -18,7 +18,7 @@ import torch
 import torch.nn as nn
 import numpy as np
     
-from predictive_neuron import models, funs
+from predictive_neuron import models, funs_train
 
 '----------------'
 def forward(par,neuron,x_data):

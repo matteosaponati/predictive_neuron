@@ -40,32 +40,32 @@ par.v_th = 1.5
 par.tau_x = 2.
 par.bound = 'soft'
 
-'set noise sources'
-par.onset = True
-par.freq_noise = True
-par.freq = 10
-par.jitter_noise = True
-par.jitter = 2
-par.batch = 1
-
 'set input'
 par.spk_volley = 'deterministic'
 par.Dt = 2
-par.N_seq = 100
-par.N_dist = 100
+par.N_seq = 10
+par.N_dist = 10
 par.N = par.N_seq+par.N_dist   
-# total ength of the simulation is twice the length of the sequence
-par.T = int(2*(par.Dt*par.N_seq + par.jitter)/(par.dt)) 
 timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
+
+'set training algorithm'
+par.bound = 'soft'
+par.epochs = 100
 
 'set initialization and training algorithm'
 par.init = 'random'
 par.init_mean = 0.2
 par.init_a, par.init_b = 0, .4
 
-'set training algorithm'
-par.bound = 'soft'
-par.epochs = 1000
+'set noise sources'
+par.noise = True
+par.freq_noise = True
+par.freq = 10
+par.jitter_noise = True
+par.jitter = 2
+par.T = int(2*(par.Dt*par.N_seq + par.jitter)/par.dt) 
+par.onset = True
+par.onset_list = np.random.randint(0,par.T/2,par.epochs)
 
 '---------------------------------------------'
 
@@ -87,23 +87,21 @@ neuron = models.NeuronClass_NumPy(par)
 neuron.w = funs_train.initialize_weights(par,neuron)
 
 'training'
-w,v,spk,loss,onsets = funs_train.train_NumPy(par,neuron)
+w,v,spk,loss = funs_train.train_NumPy(par,neuron,timing=timing)
 
-
+#%%
 '---------------------------------------------'
 'plots'
 
 'Panel b'
 for k,j in zip(spk,range(par.epochs)):
-    plt.scatter([j]*len(k),np.array(k)-onsets[j]*par.dt,c='rebeccapurple',s=2)
+    plt.scatter([j]*len(k),np.array(k)-par.onset_list[j]*par.dt,c='rebeccapurple',s=2)
 plt.ylabel(r'spike times $s$ [ms]')
 plt.ylim(0,par.T*par.dt)
 plt.xlim(0,par.epochs)
 plt.xlabel('epochs')
 
-def fr(spk,T):
-    return np.array([(len(spk[k])/T)*(1e3/T) for k in range(len(spk))])
-
+fr = np.array([(len(spk[k])/par.T)*(1e3/par.T) for k in range(par.epochs)])
 fig = plt.figure(figsize=(4,6), dpi=300)
 plt.xlabel(r'epochs')
 plt.ylabel(r'firing rate [Hz]')
@@ -115,6 +113,7 @@ plt.savefig('fr.pdf', format='pdf', dpi=300)
 plt.close('all')
 
 'Panel c'
+w = np.vstack(w)
 fig = plt.figure(figsize=(7,6), dpi=300)
 plt.title(r'$\vec{w}/\vec{w}_0$')
 plt.ylabel(r'inputs')
