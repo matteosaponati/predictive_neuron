@@ -120,7 +120,7 @@ for k in range(len(w_sweep)):
         'numerical solution'
         neuron = models.NeuronClass_NumPy(par)
         neuron.w = np.array([w_sweep[k],w_sweep[j]])
-        w,v,spk = funs_train.train_NumPy(par,neuron,x_data)
+        w,v,spk,_ = funs_train.train_NumPy(par,neuron,x_data)
         w_1[k,j] = w[-1][0]
         w_2[k,j] = w[-1][1]
         
