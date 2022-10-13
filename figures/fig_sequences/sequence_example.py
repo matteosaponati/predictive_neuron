@@ -60,7 +60,6 @@ par.N = par.N_seq+par.N_dist
 par.T = int(2*(par.Dt*par.N_seq + par.jitter)/(par.dt)) 
 timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
 
-
 'set initialization and training algorithm'
 par.init = 'random'
 par.init_mean = 0.2
@@ -167,6 +166,26 @@ plt.xlabel('epochs')
 
 def fr(spk,T):
     return np.array([(len(spk[k])/T)*(1e3/T) for k in range(len(spk))])
+
+fig,(ax1,ax2) = plt.subplots(2,1, sharex=True,figsize=(8,3))
+ax1.bar(np.arange(0,epochs,1),fr,width=6,color='purple') 
+ax2.bar(np.arange(0,epochs,1),fr,width=6,color='purple') 
+ax1.set_ylim(np.max(fr)-1,np.max(fr)+1) 
+ax2.set_ylim(0,np.max(fr[1:])) 
+ax1.spines['bottom'].set_visible(False)
+ax2.spines['top'].set_visible(False)
+ax1.xaxis.tick_top()
+ax1.tick_params(labeltop=False) 
+ax2.xaxis.tick_bottom()
+fig.subplots_adjust(hspace=0.05)
+ax2.set_xlabel(r'epochs')
+ax2.axhline(y=np.mean(fr), color='grey',linestyle='dashed',linewidth=1.5)
+ax2.set_xlim(0,epochs)
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(savedir+'output_fr.png', format='png', dpi=300)
+plt.savefig(savedir+'output_fr.pdf', format='pdf', dpi=300)
+plt.savefig(savedir+'output_fr.svg', format='svg', dpi=300)
+plt.close('all')
 
 #%%
 'plot - panel d'
