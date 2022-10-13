@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "main_selforganization_figure.py"
-neural network with self-organization lateral connections - get example 
+neural network with self-organization lateral connections - Fig 3
 ""
 
 Author:
