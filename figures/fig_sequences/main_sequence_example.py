@@ -84,7 +84,7 @@ np.random.seed(1992)
 
 'set model'
 neuron = models.NeuronClass_NumPy(par)
-neuron.w = funs_train.initialize_weights(par,neuron)
+neuron.w = funs_train.initialize_weights_NumPy(par,neuron)
 
 'training'
 w,v,spk,loss = funs_train.train_NumPy(par,neuron,timing=timing)
