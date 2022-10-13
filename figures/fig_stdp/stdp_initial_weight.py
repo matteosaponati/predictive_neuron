@@ -23,7 +23,19 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from predictive_neuron import models, funs
+from predictive_neuron import models, funs, funs_train
+
+'---------------------------------------------'
+def train_stdp(par,neuron,x_data):
+    w1, w2 = [], []
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%10 == 0: print(e)        
+    return w1, w2
+'---------------------------------------------'
 
 'set model'
 par = types.SimpleNamespace()
@@ -58,7 +70,7 @@ for k in range(len(w_0_sweep)):
     'pre-post pairing'
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = np.array([w_0_sweep[k],.13])
-    w1,w2,v,spk = funs.train(par,neuron,x_data)
+    w1,w2 = train_stdp(par,neuron,x_data)
     w_pre.append(w1[-1])
     
 'plot'

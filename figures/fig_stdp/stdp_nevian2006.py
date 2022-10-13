@@ -23,6 +23,18 @@ plt.rc('axes', axisbelow=True)
 
 from predictive_neuron import models, funs, funs_train
 
+'---------------------------------------------'
+def train_stdp(par,neuron,x_data):
+    w1, w2 = [], []
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%10 == 0: print(e)        
+    return w1, w2
+'---------------------------------------------'
+
 'set model'
 par = types.SimpleNamespace()
 par.device = 'cpu'
@@ -53,8 +65,6 @@ dt_burst, dt = (np.array([10.,20.,50.])/par.dt).astype(int), int(10./par.dt)
 w_pre,w_post = [],[]
 for j in dt_burst:
     
-    print('solving {} dt'.format(j))
-    
     'pre-post protocol'
     timing_pre = [np.array(0),dt+np.arange(0,j*n_spikes,j)]
     'post-pre protocol'
@@ -64,14 +74,14 @@ for j in dt_burst:
     x_data = funs.get_sequence_stdp(par,timing_pre)
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0.copy()
-    w1,w2 = funs_train.train_stdp(par,neuron,x_data)
+    w1,w2 = train_stdp(par,neuron,x_data)
     w_pre.append(w1[-1])
 
     'post-pre protocol'  
     x_data = funs.get_sequence_stdp(par,timing_post)
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0.copy()[::-1]
-    w1,w2 = funs_train.train_stdp(par,neuron,x_data)
+    w1,w2 = train_stdp(par,neuron,x_data)
     w_post.append(w2[-1])
 
 'plot'

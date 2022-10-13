@@ -21,7 +21,19 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-#from predictive_neuron import models, funs
+from predictive_neuron import funs, funs_train
+
+'---------------------------------------------'
+def train_stdp(par,neuron,x_data):
+    w1, w2 = [], []
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%10 == 0: print(e)        
+    return w1, w2
+'---------------------------------------------'
 
 'set model'
 par = types.SimpleNamespace()
@@ -40,63 +52,19 @@ par.epochs = 60
 
 'initial conditions'
 w_0 = np.array([.001,.11])
-
-
-#%%
-
-'create input pattern'
-def get_sequence_stdp(par,timing):    
-    x_data = np.zeros((par.N,par.T))
-    for n in range(par.N):
-        x_data[n,timing[n]]= 1
-        x_data[n,:] = np.convolve(x_data[n,:],
-                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]        
-    return x_data
  
-'----------------'
-def forward(par,neuron,x_data,idx):
-    
-    v,z = [], []
-    for t in range(par.T):    
-        v.append(neuron.v) 
-        neuron(x_data[:,t],idx)  
-        
-        if neuron.z != 0: z.append(t*par.dt)    
-    return neuron, v, z
-
-
-def train(par,neuron,x_data,idx):
-    w1, w2 = [], []
-    spk_out = []
-    v_out = []
-    'training'
-    for e in range(par.epochs):
-        
-        neuron.state()
-        neuron, v, z = forward(par,neuron,x_data,idx)
-        
-        'output'
-        w1.append(neuron.w[0].item())
-        w2.append(neuron.w[1].item())
-        spk_out.append(z)
-        v_out.append(v)
-        if e%10 == 0: print(e)
-        
-    return w1, w2, v_out, spk_out
-'---------------------------------------------'
-
-#%%
 """
 we define the NeuronClass to fix the synaptic weight of the supra-threshold input
     - idx: the index of the synapses subject to plasticity 
 """
 class NeuronClass_NumPy():
 
-    def __init__(self,par):
+    def __init__(self,par,idx):
         
         self.par = par  
         self.alpha = (1-self.par.dt/self.par.tau_m)              
         self.w = np.zeros(self.par.N)
+        self.idx = idx
         
     def state(self):
         """initialization of neuron state"""
@@ -107,20 +75,22 @@ class NeuronClass_NumPy():
         self.epsilon = np.zeros(self.par.N)
         self.grad = np.zeros(self.par.N)
     
-    def __call__(self,x,idx):
+    def __call__(self,x):
         
         'compute prediction error (eq 4) and update parameters (eq 3)'
-        self.epsilon[idx] =  x[idx] - self.w[idx]*self.v
-        self.grad[idx] = self.v*self.epsilon[idx] + np.dot(self.epsilon[idx],self.w[idx])*self.p[idx]
+        self.epsilon[self.idx] =  x[self.idx] - self.w[self.idx]*self.v
+        self.grad[self.idx] = self.v*self.epsilon[self.idx] + \
+                                np.dot(self.epsilon[self.idx],self.w[self.idx])*self.p[self.idx]
         if self.par.bound == 'soft':
-            self.w[idx] = self.w[idx] + self.w[idx]*self.par.eta*self.grad[idx]
+            self.w[self.idx] = self.w[self.idx] + self.w[self.idx]*self.par.eta*self.grad[self.idx]
         elif self.par.bound == 'hard':
-            self.w[idx] = self.w[idx] + self.par.eta*self.grad[idx]
-            self.w[idx] = np.where(self.w[idx]<0,np.zeros_like(self.w[idx]),self.w[idx])
-        else: self.w[idx] = self.w[idx] + self.par.eta*self.grad[idx]
+            self.w[self.idx] = self.w[self.idx] + self.par.eta*self.grad[self.idx]
+            self.w[self.idx] = np.where(self.w[self.idx]<0,
+                                    np.zeros_like(self.w[self.idx]),self.w[self.idx])
+        else: self.w[self.idx] = self.w[self.idx] + self.par.eta*self.grad[self.idx]
         
         'update eligibility traces'
-        self.p[idx] = self.alpha*self.p[idx] + x[idx]
+        self.p[self.idx] = self.alpha*self.p[self.idx] + x[self.idx]
         
         'update membrane voltage (eq 1)'
         self.v = self.alpha*self.v + np.dot(x,self.w) 
@@ -144,26 +114,24 @@ for k in range(len(delay)):
     
     'set inputs'
     timing = np.array([0,0+ delay[k]]).astype(int)
-    x_data = get_sequence_stdp(par,timing)
+    x_data = funs.get_sequence_stdp(par,timing)
     
     'pre-post pairing'
-    neuron = NeuronClass_NumPy(par)
+    neuron = NeuronClass_NumPy(par,0)
     neuron.w = np.array([.001,.12])
-    w1,w2,v,spk = train(par,neuron,x_data,0)
-    spk_prepost.append(spk)
+    w1,w2 = train_stdp(par,neuron,x_data)
     w_prepost.append(w1[-1])
     
     'post-pre pairing'
-    neuron = NeuronClass_NumPy(par)
+    neuron = NeuronClass_NumPy(par,1)
     neuron.w = np.array([.12,.06])
-    w1,w2,v,spk = train(par,neuron,x_data,1)
-    spk_postpre.append(spk)
+    w1,w2 = train_stdp(par,neuron,x_data)
     w_postpre.append(w2[-1])  
-  #%%      
+   
 'plot'
 fig = plt.figure(figsize=(6,6), dpi=300)
-plt.plot(-delay[::-1]*par.dt,np.array(w_prepost[::-1])/.001,linewidth=2)
-plt.plot(delay*par.dt,np.array(w_postpre)/.06,linewidth=2)
+plt.plot(-delay[::-1]*par.dt,np.array(w_prepost[::-1])/.001,color='royalblue',linewidth=2)
+plt.plot(delay*par.dt,np.array(w_postpre)/.06,color='royalblue',linewidth=2)
 plt.xlabel(r'$\Delta t$ [ms]')
 plt.ylabel(r'$w/w_0$')
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)

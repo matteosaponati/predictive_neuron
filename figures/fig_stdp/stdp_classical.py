@@ -22,6 +22,18 @@ plt.rc('axes', axisbelow=True)
 
 from predictive_neuron import models, funs, funs_train
 
+'---------------------------------------------'
+def train_stdp(par,neuron,x_data):
+    w1, w2 = [], []
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%10 == 0: print(e)        
+    return w1, w2
+'---------------------------------------------'
+
 'set model'
 par = types.SimpleNamespace()
 par.device = 'cpu'
@@ -69,20 +81,21 @@ for k in range(len(tau_sweep)):
         'pre-post pairing'
         neuron = models.NeuronClass_NumPy(par)
         neuron.w = w_0.copy()
-        w1,w2 = funs_train.train_stdp(par,neuron,x_data)
+        w1,w2 = train_stdp(par,neuron,x_data)
         w_prepost[k].append(w1[-1])
         
         'post-pre pairing'
         neuron = models.NeuronClass_NumPy(par)
         neuron.w = w_0[::-1].copy()
-        w1,w2 = funs_train.train_stdp(par,neuron,x_data)
+        w1,w2 = train_stdp(par,neuron,x_data)
         w_postpre[k].append(w2[-1])  
     
 'plot'
+c = ['purple','royalblue','navy']
 fig = plt.figure(figsize=(6,6), dpi=300)
 for k in range(len(tau_sweep)):
-    plt.plot(-delay[::-1]*par.dt,w_prepost[k][::-1]/w_0[0],linewidth=2)
-    plt.plot(delay*par.dt,w_postpre[k]/w_0[0],linewidth=2)
+    plt.plot(-delay[::-1]*par.dt,w_prepost[k][::-1]/w_0[0],linewidth=2,color=c[k])
+    plt.plot(delay*par.dt,w_postpre[k]/w_0[0],linewidth=2,color=c[k])
 plt.xlabel(r'$\Delta t$ [ms]')
 plt.ylabel(r'$w/w_0$')
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)

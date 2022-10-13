@@ -21,7 +21,20 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from predictive_neuron import models, funs, funs_train
+from predictive_neuron import models, funs
+
+'-----'
+def train_STDP(par,neuron,x_data):
+    w1, w2 = [], []
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, _, spk, _ = funs.forward_NumPy(par,neuron,x_data)        
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%10 == 0: print(e)        
+    return w1, w2, spk
+
+'-----'
 
 'set model'
 par = types.SimpleNamespace()
@@ -75,7 +88,7 @@ for k in range(len(tau_sweep)):
         'pre-post pairing'
         neuron = models.NeuronClass_NumPy(par)
         neuron.w = w_0.copy()
-        w1,w2,v,spk,_ = funs_train.train_NumPy(par,neuron,x_data)
+        w1,w2,spk = train_STDP(par,neuron,x_data)
         spk_prepost[k].append(spk)
         w1_prepost[k].append(w1)
         w2_prepost[k].append(w2)
@@ -83,7 +96,7 @@ for k in range(len(tau_sweep)):
         'post-pre pairing'
         neuron = models.NeuronClass_NumPy(par)
         neuron.w = w_0[::-1].copy()
-        w1,w2,v,spk,_ = funs_train.train_NumPy(par,neuron,x_data)
+        w1,w2,spk = train_STDP(par,neuron,x_data)
         spk_postpre[k].append(spk)
         w1_postpre[k].append(w1)
         w2_postpre[k].append(w2)
@@ -113,7 +126,7 @@ for t in range(len(tau_sweep)):
     fig.tight_layout(rect=[0, 0.01, 1, 0.97])
     plt.legend()
     plt.savefig('stdp_classical_convergence_LTD_tau_{}.png'.format(tau_sweep[t]), format='png', dpi=300)
-#    plt.savefig('stdp_classical_convergence_LTD_tau_{}.pdf'.format(tau_sweep[t]), format='pdf', dpi=300)
+    plt.savefig('stdp_classical_convergence_LTD_tau_{}.pdf'.format(tau_sweep[t]), format='pdf', dpi=300)
     plt.close('all')
     
     fig = plt.figure(figsize=(6,6), dpi=300)
@@ -126,7 +139,7 @@ for t in range(len(tau_sweep)):
     plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
     fig.tight_layout(rect=[0, 0.01, 1, 0.97])
     plt.savefig('s_convergencee_LTP_tau_{}.png'.format(tau_sweep[t]),format='png', dpi=300)
-#    plt.savefig('s_convergence_LTD_tau_{}.pdf'.format(tau_sweep[t]),format='pdf', dpi=300)
+    plt.savefig('s_convergence_LTD_tau_{}.pdf'.format(tau_sweep[t]),format='pdf', dpi=300)
     plt.close('all')
     
     fig = plt.figure(figsize=(6,6), dpi=300)

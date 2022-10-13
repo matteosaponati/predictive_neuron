@@ -23,6 +23,18 @@ plt.rc('axes', axisbelow=True)
 
 from predictive_neuron import models, funs, funs_train
 
+'---------------------------------------------'
+def train_stdp(par,neuron,x_data):
+    w1, w2 = [], []
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%10 == 0: print(e)        
+    return w1, w2
+'---------------------------------------------'
+
 'set model'
 par = types.SimpleNamespace()
 par.device = 'cpu'
@@ -59,7 +71,7 @@ for k in np.arange(1,n_spk+1):
     'numerical solutions'
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0.copy()
-    w1,w2 = funs_train.train_stdp(par,neuron,x_data)
+    w1,w2 = train_stdp(par,neuron,x_data)
     'get weights'
     w_post.append(w2[-1])
 
@@ -84,3 +96,4 @@ plt.close('all')
 
 "RMS error"
 error = np.sqrt(np.sum((np.array(w_post)/w_0[1] - np.array(y))**2)/len(y))
+#%%
