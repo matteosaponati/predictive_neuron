@@ -24,20 +24,19 @@ plt.rc('axes', axisbelow=True)
 par = types.SimpleNamespace()
 par.device = 'cpu'
 par.dt = .05
-par.eta = 2e-4
-par.tau_m = 5.
-par.v_th = .4
+par.eta = 1e-5
+par.tau_m = 25.
+par.v_th = 2.5
 par.tau_x = 2.
 par.bound = 'soft'
 
 'set inputs'
 par.N = 2
-par.T = int(200/par.dt)
-par.epochs = 60
+par.T = int(600/par.dt)
+par.epochs = 100
 
 'initial conditions'
-w_0 = np.array([.007,.02])
-
+w_0 = np.array([.04,.09])
 
 #%%
 
@@ -140,9 +139,10 @@ inputs:
     1. delay: range of delay considered
 """
 
-delay = (np.arange(0,50,4)/par.dt).astype(int)
+delay = (np.arange(0,300,50)/par.dt).astype(int)
 
 w_prepost,w_postpre = [],[]
+wtot = [[],[]]
 spk_prepost,spk_postpre = [], []
 for k in range(len(delay)):
     
@@ -156,6 +156,8 @@ for k in range(len(delay)):
     w1,w2,v,spk = train(par,neuron,x_data)
     spk_prepost.append(spk)
     w_prepost.append(w1[-1])
+    wtot[0].append(w1)
+    wtot[1].append(w2)
     
     'post-pre pairing'
     neuron = NeuronClass_NumPy(par)
@@ -165,15 +167,21 @@ for k in range(len(delay)):
     w_postpre.append(w2[-1])  
     
 #%%
+    
+for k in range(len(delay)):
+    plt.plot(wtot[0][k]/w_0[0],label='{}'.format(delay[k]*par.dt))
+plt.legend()
+
+#%%
 'plot'
-fig = plt.figure(figsize=(6,6), dpi=300)
+#fig = plt.figure(figsize=(6,6), dpi=300)
 plt.plot(-delay[::-1]*par.dt,w_prepost[::-1]/w_0[0],linewidth=2)
 plt.plot(delay*par.dt,w_postpre/w_0[0],linewidth=2)
 plt.xlabel(r'$\Delta t$ [ms]')
 plt.ylabel(r'$w/w_0$')
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.axvline(x=0, color='black',linewidth=1.5)
-fig.tight_layout(rect=[0, 0.01, 1, 0.96])
-plt.savefig('stdp_window.png', format='png', dpi=300)
-plt.savefig('stdp_window.pdf', format='pdf', dpi=300)
-plt.close('all')
+#fig.tight_layout(rect=[0, 0.01, 1, 0.96])
+#plt.savefig('stdp_window.png', format='png', dpi=300)
+#plt.savefig('stdp_window.pdf', format='pdf', dpi=300)
+#plt.close('all')
