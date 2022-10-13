@@ -137,6 +137,10 @@ class NeuronClass_NumPy():
         'compute prediction error (eq 4) and update parameters (eq 3)'
         self.epsilon =  x - self.w*self.v
         self.grad = self.v*self.epsilon + np.dot(self.epsilon,self.w)*self.p
+        
+        'soft: apply soft lower-bound, update proportional to parameters'
+        'hard: apply hard lower-bound, hard-coded positive parameters'
+        
         if self.par.bound == 'soft':
             self.w = self.w + self.w*self.par.eta*self.grad
         elif self.par.bound == 'hard':

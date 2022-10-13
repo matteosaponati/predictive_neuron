@@ -20,6 +20,7 @@ import torch.nn.functional as F
 import matplotlib.colors as colors
 
 '---------------------------------------------'
+'get sequence - PyTorch version'
 
 def get_firing_rate(par,x,Dt=1):
     
@@ -30,10 +31,9 @@ def get_firing_rate(par,x,Dt=1):
     
     return np.array(fr)
 
-'get sequence - PyTorch version'
-def get_sequence(par,timing):
+def get_sequence(par,timing,onset=None):
     
-    if par.offset == True: timing += np.random.randint(0,par.T/2)
+    if par.onset == True: timing += onset
         
     if par.freq_noise == True:
         prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
@@ -44,7 +44,7 @@ def get_sequence(par,timing):
         
     if par.jitter_noise == True:
          for b in range(par.batch):
-             timing_err = np.array(timing) + (np.random.randint(-par.jitter,par.jitter,len(timing)))/par.dt
+             timing_err = np.array(timing) + np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
              x_data[b,timing_err.tolist(),range(len(timing))] = 1
     else:
         x_data[:,timing,range(len(timing))] = 1
@@ -55,7 +55,7 @@ def get_sequence(par,timing):
     x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
                          padding=par.T,groups=par.N)[:,:,1:par.T+1]
     
-    return x_data.permute(0,2,1)
+    return x_data.permute(0,2,1), onset
 
 def get_sequence_fr(par,timing):
     
@@ -105,21 +105,8 @@ def sequence_capacity(par,timing):
     return x_data.permute(0,2,1)
 
 '--------------'
+'get sequence - NumPy version + get sequence for STDP protocols'
 
-'get sequence - NumPy version'
-# def get_sequence_NumPy(par,timing):
-    
-#     x_data = np.zeros((par.N,par.T))
-    
-#     for n in range(par.N):
-#         x_data[n,timing[n]]= 1
-#         x_data[n,:] = np.convolve(x_data[n,:],
-#                       np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
-        
-#     return x_data
-
-
-'define dataset'
 def get_sequence_NumPy(par,timing,onset):
     
     'set random input onset'
@@ -134,9 +121,8 @@ def get_sequence_NumPy(par,timing,onset):
 
     'set jitter'        
     if par.jitter_noise == True:
-        # x_data[:,0:timing[-1]] = 0
         timing_err = np.array(timing) \
-                        + (np.random.randint(-par.jitter,par.jitter,len(timing)))/par.dt
+                        + np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
         x_data[range(par.N_seq),timing_err.astype(int).tolist()] = 1
     else: x_data[range(par.N_seq),timing] = 1
         
@@ -147,7 +133,6 @@ def get_sequence_NumPy(par,timing,onset):
         
     return x_data
 
-'pre-synaptic inputs for STDP protocols'
 def get_sequence_stdp(par,timing):
     
     x_data = np.zeros((par.N,par.T))
@@ -160,6 +145,7 @@ def get_sequence_stdp(par,timing):
     return x_data
 
 '---------------------------------------------'
+'get sequence neural network with trainable recurrent connections - NumPy version'
 
 def get_sequence_nn_selforg(par):
     
