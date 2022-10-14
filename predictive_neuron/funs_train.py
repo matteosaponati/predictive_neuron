@@ -25,7 +25,10 @@ from predictive_neuron import funs
 '---------------------------------------------------------------------------'
 'numerical solution and training for sequences - NumPy version'
 
+'--------'
+
 def initialize_weights_NumPy(par,neuron):
+    
     if par.init == 'fixed': 
         return par.init_mean*np.ones(par.N)
     elif par.init == 'random':
@@ -79,11 +82,72 @@ def train_NumPy(par,neuron,x=None,timing=None):
         
     return w, v_list, spk_list, loss_list
 
+'--------'
+
+def initialization_weights_nn_NumPy(par,network):
+    
+    if par.init == 'random':
+        network.w = stats.truncnorm((par.init_a-par.init_mean)/(1/np.sqrt(par.N)), 
+                              (par.init_b-par.init_mean)/(1/np.sqrt(par.N)), 
+                              loc=par.init_mean, scale=1/np.sqrt(par.N)).rvs(par.n_in+par.lateral,par.nn)
+        network.w[par.n_in:,] = par.w_0rec    
+        
+    if par.init == 'fixed':
+        network.w = par.init_mean*np.ones((par.n_in+par.lateral,par.nn))
+        network.w[par.n_in:,] = par.w_0rec
+    
+    return network
+
+def forward_nn_NumPy(par,network,x_data):
+    
+    z = [[] for n in range(par.nn)]
+    v = []
+    
+    for t in range(par.T):     
+        
+        v.append(network.v)
+        
+        'update weights and membrane potential - Equation 1 and Equation 3'
+        network(x_data[:,t]) 
+        for n in range(par.nn):
+            for b in range(par.batch):
+                if network.z[n] != 0: z[n].append(t*par.dt)          
+        
+    return network, np.stack(v,axis=1), z
+
+def train_nn_NumPy(par,network,x=None,timing=None):
+        
+    'allocate outputs'
+    w = []
+    z_list = [[] for n in range(par.nn)]
+    v_list = []
+    
+    'training'
+    for e in range(par.epochs):
+        
+        if par.noise == True:            
+            x = funs.get_sequence_nn_selforg_NumPy(par,timing)
+        
+        network.state()
+        network, v, z = forward_nn_NumPy(par,network,x)
+        
+        v_list.append(v)
+        w.append(network.w)
+        for n in range(par.nn):
+            z_list[n].append(z[n])
+        
+        if e%100 == 0: print("""epoch {} out of {}""".format(e,par.epochs))  
+
+    return w, v_list, z_list
+
 
 '---------------------------------------------------------------------------'
-'numerical solution and training for sequences - PyTorch version'
+'numerical solution and training - PyTorch version'
+
+'--------'
 
 def initialize_weights_PyTorch(par,neuron):
+    
     if par.init == 'random':
         neuron.w = nn.Parameter(torch.empty(par.N)).to(par.device)
         torch.nn.init.trunc_normal_(neuron.w, mean=par.init_mean, std=.1/np.sqrt(par.N),
@@ -111,7 +175,7 @@ def forward_PyTorch(par,neuron,x):
                 neuron.backward_online(x[:,t])
                 neuron.update_online()            
 
-        'update of the neuronal variables'
+        'update of the neuronal variables - forward pass'
         neuron(x[:,t])        
         if neuron.z[0] != 0: z.append(t*par.dt)    
         
@@ -175,6 +239,87 @@ def train_PyTorch(par,neuron,x=None,timing=None):
             print('epoch {} loss {}'.format(e,E.item()/par.T))
     
     return w_list, v_list, spk_list, loss_list
+
+'--------'
+
+def initialization_weights_nn_PyTorch(par,network):
+    
+    if par.init == 'random':
+        network.w = nn.Parameter(torch.empty(par.n_in+par.lateral,par.nn)).to(par.device)
+        torch.nn.init.trunc_normal_(network.w, mean=par.init_mean, std=1/np.sqrt(par.n_in+par.lateral),
+                                    a=par.init_a,b=par.init_b) 
+        network.w[par.n_in:,] = par.w_0rec    
+    if par.init == 'fixed':
+        w = par.init_mean*torch.ones(par.n_in+par.lateral,par.nn)
+        w[par.n_in:,] = par.w_0rec
+        print(w)
+        network.w = nn.Parameter(w).to(par.device)
+    
+    return network
+
+def forward_nn_PyTorch(par,network,x_data):
+    
+    z = [[[] for b in range(par.batch)] for n in range(par.nn)]
+    v = []
+    
+    for t in range(par.T):     
+        
+        v.append(network.v.clone().detach().numpy())
+        
+        """
+        online optimization step - backward pass:
+            - computes the estimate of the gradient at timestep t
+            - updates the synaptic weights online
+        """
+        if par.online == True: 
+            with torch.no_grad():
+                network.backward_online(x_data[:,t])
+                network.update_online()  
+        
+        'update of the neuronal variables - forward pass'
+        network(x_data[:,t]) 
+        for n in range(par.nn):
+            for b in range(par.batch):
+                if network.z[b,n] != 0: z[n][b].append(t*par.dt)          
+        
+    return network, np.stack(v,axis=1), z
+
+def train_nn_PyTorch(par,network,x=None,timing=None):
+        
+    'allocate outputs'
+    w = np.zeros((par.epochs,par.n_in+par.lateral,par.nn))
+    z_out = [[] for n in range(par.nn)]
+    v_out = []
+    
+    'training'
+    for e in range(par.epochs):
+        
+        if par.noise == True:            
+            x = funs.get_sequence_nn_selforg(par,timing)
+        
+        """
+        1.initialize neuron state
+        2. update weights (backward pass)
+        3. solve dynamics (forward pass)
+        """
+        network.state()
+        network, v, z = forward_nn_PyTorch(par,network,x)
+        v_out.append(v)
+        
+        w[e,:,:] = network.w.detach().numpy()
+        for n in range(par.nn):
+            z_out[n].append(z[n])
+        
+        if e%50 == 0: print(e)  
+
+    return w, v_out, z_out
+
+'---------------------------------------------------------------------------'
+
+#%%
+  
+
+
 
 
 # '----------------'
