@@ -44,6 +44,7 @@ def get_sequence(par,timing,onset=None):
         
     if par.jitter_noise == True:
          for b in range(par.batch):
+             
              timing_err = np.array(timing) + np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
              x_data[b,timing_err.tolist(),range(len(timing))] = 1
     else:
@@ -79,22 +80,21 @@ def get_sequence_fr(par,timing):
     
     return fr
 
-def sequence_capacity(par,timing):
+def get_multisequence(par,timing):
     
-    if par.fr_noise == True:
-        prob = par.freq*par.dt
-        mask = torch.rand(par.batch,par.T,par.N).to(par.device)
+    if par.freq_noise == True:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-        x_data[mask<prob] = 1        
+        for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
     else:
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
     
     'create sequence' 
     for b in range(par.batch):
         if par.jitter_noise == True:
-            timing_err = np.array(timing) + (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
-            x_data[b,timing_err,b*par.N_sub + np.arange(par.N_sub)] = 1
-        else: x_data[b,timing,b*par.N_sub + np.arange(par.N_sub)] = 1
+            timing_err = np.array(timing[b]) + (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
+            x_data[b,timing_err,par.N_subseq[b]] = 1
+        else: x_data[b,timing_err,par.N_subseq[b]] = 1
         
     'synaptic time constant'
     filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
@@ -125,6 +125,30 @@ def get_sequence_NumPy(par,timing,onset):
                         + np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
         x_data[range(par.N_seq),timing_err.astype(int).tolist()] = 1
     else: x_data[range(par.N_seq),timing] = 1
+        
+    'synaptic time constant'
+    for n in range(par.N):
+        x_data[n,:] = np.convolve(x_data[n,:],
+                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
+        
+    return x_data
+
+def get_multisequence_NumPy(par,timing):
+    
+    'set background firing'
+    if par.freq_noise == True:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+        x_data = np.zeros((par.N,par.T))
+        for n in range(par.N): x_data[n,:][np.random.rand(par.T)<prob[n]] = 1        
+    else: x_data = np.zeros((par.N,par.T))
+
+    'set jitter' 
+    for b in range(par.batch):
+        if par.jitter_noise == True:
+            timing_err = timing[b] + \
+                (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
+            x_data[par.N_subseq[b].astype(int),(timing_err).astype(int)] = 1
+        else: x_data[par.N_subseq[b],(timing_err).astype(int)] = 1
         
     'synaptic time constant'
     for n in range(par.N):

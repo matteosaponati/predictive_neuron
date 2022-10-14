@@ -80,6 +80,7 @@ class NeuronClass(nn.Module):
         soft: apply soft lower-bound, update proportional to parameters
         hard: apply hard lower-bound, hard-coded positive parameters
         """
+        
         if self.par.bound == 'soft':
             self.w =  nn.Parameter(self.w - 
                                    self.w*(self.par.eta*torch.mean(self.grad,dim=0)))

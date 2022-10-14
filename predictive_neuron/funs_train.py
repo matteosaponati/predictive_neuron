@@ -60,9 +60,13 @@ def train_NumPy(par,neuron,x=None,timing=None):
     for e in range(par.epochs):     
         
         if par.noise == True:
-            x = funs.get_sequence_NumPy(par,timing,
-                                             onset=par.onset_list[e])
             
+            if par.name == 'sequence': 
+                x = funs.get_sequence_NumPy(par,timing,
+                                             onset=par.onset_list[e])
+            if par.name == 'multisequence': 
+                x = funs.get_multisequence_NumPy(par,timing)
+        
         neuron.state()
         neuron, v, spk, loss = forward_NumPy(par,neuron,x)    
         
@@ -134,12 +138,16 @@ def train_PyTorch(par,neuron,x=None,timing=None):
                 
         'load input data'
         if par.noise == True:
-            x = funs.get_sequence(par,timing)
-    
             
+            if par.name == 'sequence': 
+                x,_ = funs.get_sequence(par,timing)
+            if par.name == 'multisequence': 
+                x = funs.get_multisequence(par,timing)
+    
         # x_data = np.load(par.loaddir+'sequence_Dt_{}_Nseq_{}_Ndist_{}_rep_{}.npy'.format(
         #                     par.Dt,par.N_seq,par.N_dist,np.random.randint(1000)))
         
+        'initialize neuron state and solve dynamics (forward pass)'
         neuron.state()
         neuron, v, z = forward_PyTorch(par,neuron,x)
         
@@ -159,12 +167,12 @@ def train_PyTorch(par,neuron,x=None,timing=None):
         
         'save output'
         loss_list.append(E.item())
-        w_list(neuron.w.detach().numpy())
+        w_list.append(neuron.w.detach().numpy())
         v_list.append(v.detach().numpy())
         spk_list.append(z)
         
         if e%50 == 0: 
-            print('epoch {} loss {}'.format(e,E.item()))
+            print('epoch {} loss {}'.format(e,E.item()/par.T))
     
     return w_list, v_list, spk_list, loss_list
 
