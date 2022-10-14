@@ -15,6 +15,7 @@ This repo is structured as follows
 + **scripts**
 
 + **predictive_neuron**
+It contains the Python modules of the project
 
 + **figures**: 
 this folder contain the code necessary to reproduce all the figures in the paper
