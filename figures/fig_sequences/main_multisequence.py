@@ -3,8 +3,8 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"main_sequence.py"
-single neuron trained on input sequences - Figure 2
+"main_multisequence.py"
+single neuron trained on multiple input sequences - Figure 2
 
 Author:
     
@@ -27,7 +27,7 @@ if __name__ == '__main__':
                     )
     
     parser.add_argument('--name',type=str, 
-                        choices=['sequence','multisequence'],default='sequence',
+                        choices=['sequence','multisequence'],default='multisequence',
                         help='type of sequence inputs')
     
     'training algorithm'
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--epochs', type=int, default=400)
     parser.add_argument('--seed', type=int, default=1992)
-    parser.add_argument('--batch', type=int, default=10)
+    parser.add_argument('--batch', type=int, default=4)
     parser.add_argument('--device', type=str, default="cpu")
     parser.add_argument('--rep', type=int, default=1)
     
@@ -57,8 +57,7 @@ if __name__ == '__main__':
     parser.add_argument('--sequence',type=str, 
                         choices=['deterministic','random'],default='random')
     parser.add_argument('--Dt', type=int, default=4) 
-    parser.add_argument('--N_seq', type=int, default=10)
-    parser.add_argument('--N_dist', type=int, default=10)
+    parser.add_argument('--N_sub', type=int, default=5)
     
     'set noise sources'
     parser.add_argument('--noise', type=bool, default=True)
@@ -81,14 +80,21 @@ if __name__ == '__main__':
     '-----------------'
     
     'set total length of simulation and total input size'
-    par.T = int(2*(par.Dt*par.N_seq + par.jitter)/(par.dt))
-    par.N = par.N_seq+par.N_dist
+    par.N = par.N_sub*par.batch
+    par.T = int(2*(par.Dt*par.N + par.jitter)/(par.dt))
+    par.N_subseq = [np.arange(k,k+par.N_sub) 
+                    for k in np.arange(0,par.N+par.N_sub,par.N_sub)]
     
     'set timing'
+    timing = []
     if par.sequence == 'deterministic':
-        timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
-    if par.sequence == 'random':
-        timing = (np.cumsum(np.random.randint(0,par.Dt,par.N_seq))/par.dt).astype(int)
+        for b in range(par.batch):
+            timing.append((np.linspace(
+                par.Dt,par.Dt*par.N_sub,par.N_sub)/par.dt).astype(int))
+    elif par.sequence == 'random':
+        for b in range(par.batch):
+            timing.append((np.cumsum(
+                np.random.randint(0,par.Dt,par.N_sub))/par.dt).astype(int))
     
     'fix seed'
     torch.manual_seed(par.seed)
@@ -100,7 +106,7 @@ if __name__ == '__main__':
     neuron = funs_train.initialize_weights_PyTorch(par,neuron)
     
     if par.noise == False:
-        x_data, onset = funs.get_sequence(par,timing)
+        x_data = funs.get_multisequence(par,timing)
         w,v,spk,loss = funs_train.train_PyTorch(par,neuron,x=x_data)
     
     else: 

@@ -3,7 +3,7 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"sequence_example_numpy.py":
+"main_sequence_example.py":
 train the single neuron model on high-dimensional input-spike trains (Figure 2)
 
 Author:
@@ -32,6 +32,7 @@ from predictive_neuron import models, funs_train
 par = types.SimpleNamespace()
 
 'set model'
+par.name = 'sequence'
 par.device = 'cpu'
 par.dt = .05
 par.eta = 5e-4
@@ -41,7 +42,7 @@ par.tau_x = 2.
 par.bound = 'soft'
 
 'set input'
-par.spk_volley = 'deterministic'
+par.sequence = 'deterministic'
 par.Dt = 2
 par.N_seq = 10
 par.N_dist = 10
@@ -89,7 +90,6 @@ neuron.w = funs_train.initialize_weights_NumPy(par,neuron)
 'training'
 w,v,spk,loss = funs_train.train_NumPy(par,neuron,timing=timing)
 
-#%%
 '---------------------------------------------'
 'plots'
 
