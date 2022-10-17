@@ -39,7 +39,6 @@ par.eta = 5e-4
 par.tau_m = 10.
 par.v_th = 1.5
 par.tau_x = 2.
-par.bound = 'soft'
 
 'set input'
 par.sequence = 'deterministic'
@@ -55,8 +54,8 @@ par.epochs = 1000
 
 'set initialization and training algorithm'
 par.init = 'random'
-par.init_mean = 0.2
-par.init_a, par.init_b = 0, .4
+par.init_mean = 0.06
+par.init_a, par.init_b = 0, .12
 
 'set noise sources'
 par.noise = True
