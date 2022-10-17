@@ -199,7 +199,7 @@ def get_sequence_nn_selforg_NumPy(par,timing):
             x = np.zeros((par.n_in,par.T))
             for nin in range(par.n_in): x[nin,:][np.random.rand(par.T)<prob[nin]] = 1        
         else:
-            x = np.zeros((par.T,par.N))
+            x = np.zeros((par.n_in,par.T))
             
         'create sequence + jitter'
         if par.jitter_noise == True:

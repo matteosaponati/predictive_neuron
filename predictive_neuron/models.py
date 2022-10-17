@@ -304,8 +304,8 @@ class NetworkClass_SelfOrg_NumPy():
                 
         'compute prediction error (eq 4) and update parameters (eq 3)'
         self.epsilon = x_tot - self.w*self.v
-        self.grad = -(self.v*self.epsilon \
-                         + np.sum(self.w*self.epsilon,axis=0)*self.p)
+        self.grad = self.v*self.epsilon \
+                         + np.sum(self.w*self.epsilon,axis=0)*self.p
         self.p = self.alpha*self.p + x_tot
         
         'soft: apply soft lower-bound, update proportional to parameters'

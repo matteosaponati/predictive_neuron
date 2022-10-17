@@ -87,9 +87,9 @@ def train_NumPy(par,neuron,x=None,timing=None):
 def initialization_weights_nn_NumPy(par,network):
     
     if par.init == 'random':
-        network.w = stats.truncnorm((par.init_a-par.init_mean)/(1/np.sqrt(par.N)), 
-                              (par.init_b-par.init_mean)/(1/np.sqrt(par.N)), 
-                              loc=par.init_mean, scale=1/np.sqrt(par.N)).rvs(par.n_in+par.lateral,par.nn)
+        network.w = stats.truncnorm((par.init_a-par.init_mean)/(1/np.sqrt(par.n_in+par.lateral)), 
+                              (par.init_b-par.init_mean)/(1/np.sqrt(par.n_in+par.lateral)), 
+                              loc=par.init_mean, scale=1/np.sqrt(par.n_in+par.lateral)).rvs((par.n_in+par.lateral,par.nn))
         network.w[par.n_in:,] = par.w_0rec    
         
     if par.init == 'fixed':
@@ -110,8 +110,7 @@ def forward_nn_NumPy(par,network,x_data):
         'update weights and membrane potential - Equation 1 and Equation 3'
         network(x_data[:,t]) 
         for n in range(par.nn):
-            for b in range(par.batch):
-                if network.z[n] != 0: z[n].append(t*par.dt)          
+            if network.z[n] != 0: z[n].append(t*par.dt)          
         
     return network, np.stack(v,axis=1), z
 
