@@ -35,9 +35,9 @@ par = types.SimpleNamespace()
 par.name = 'multisequence'
 par.device = 'cpu'
 par.dt = .05
-par.eta = 1e-6
+par.eta = 1e-5
 par.tau_m = 10.
-par.v_th = 1.
+par.v_th = 1.5
 par.tau_x = 2.
 
 'set input'
@@ -55,8 +55,8 @@ for b in range(par.batch):
         par.Dt,par.Dt*par.N_sub,par.N_sub))/par.dt).astype(int))
 
 'set training algorithm'
-par.bound = 'none'
-par.epochs = 1500
+par.bound = 'soft'
+par.epochs = 1000
 
 'set initialization and training algorithm'
 par.init = 'fixed'
@@ -66,9 +66,9 @@ par.init_a, par.init_b = 0, .06
 'set noise sources'
 par.noise = True
 par.freq_noise = True
-par.freq = 5
+par.freq = 10
 par.jitter_noise = True
-par.jitter = 1
+par.jitter = 2
 par.T = int((par.batch*par.delay + par.Dt*par.N + par.jitter)/(par.dt))
 
 '---------------------------------------------'

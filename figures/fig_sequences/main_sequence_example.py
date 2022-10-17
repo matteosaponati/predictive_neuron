@@ -44,14 +44,14 @@ par.bound = 'soft'
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.N_seq = 10
-par.N_dist = 10
+par.N_seq = 100
+par.N_dist = 100
 par.N = par.N_seq+par.N_dist   
 timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
 
 'set training algorithm'
 par.bound = 'soft'
-par.epochs = 100
+par.epochs = 1000
 
 'set initialization and training algorithm'
 par.init = 'random'
