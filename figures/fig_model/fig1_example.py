@@ -65,7 +65,7 @@ for k in range(len(w_0)):
 'plots'
 c=['mediumvioletred','mediumslateblue','lightseagreen','salmon']
 
-# fig = plt.figure(figsize=(6,6), dpi=300)
+fig = plt.figure(figsize=(6,6), dpi=300)
 for s in range(len(spk_tot)):
     for k,j in zip(spk_tot[s],range(par.epochs)):
         plt.scatter([j]*len(k),k,c=c[s],s=7)
@@ -76,12 +76,12 @@ plt.xlabel(r'epochs')
 plt.xlim(0,par.epochs)
 plt.ylim(0,10)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
-# fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-# plt.savefig('s_convergence.png',format='png', dpi=300)
-# plt.savefig('s_convergence.pdf',format='pdf', dpi=300)
-# plt.close('all')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig('s_convergence.png',format='png', dpi=300)
+plt.savefig('s_convergence.pdf',format='pdf', dpi=300)
+plt.close('all')
 
-# fig = plt.figure(figsize=(6,6), dpi=300)
+fig = plt.figure(figsize=(6,6), dpi=300)
 for s in range(len(w_0)):
     plt.plot(w1_tot[s],color=c[s],linewidth=2)
     plt.plot(w2_tot[s],color=c[s],linewidth=2,linestyle='dashed')
@@ -90,10 +90,10 @@ plt.ylabel(r'synaptic weights $\vec{w}$')
 plt.xlim(0,par.epochs)
 plt.ylim(bottom=0)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
-# fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-# plt.savefig('w_convergence.png',format='png', dpi=300)
-# plt.savefig('w_convergence.pdf',format='pdf', dpi=300)
-# plt.close('all')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig('w_convergence.png',format='png', dpi=300)
+plt.savefig('w_convergence.pdf',format='pdf', dpi=300)
+plt.close('all')
 
 fig = plt.figure(figsize=(6,6), dpi=300)
 plt.plot(v_tot[2][0],color='navy',linewidth=2,label='epoch 0')
