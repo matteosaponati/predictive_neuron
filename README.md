@@ -1,12 +1,14 @@
 ## Predictive plasticity at the single neuron level
 
-**Introduction**
+**summary**
 
 this is a repository for the paper:
 <br/>"*Sequence anticipation and STDP emerge from a voltage-based predictive learning rule*"<br/>
 M Saponati, M Vinck<br/>
 (2021, BiorXiv) (under revision)<br/>
 https://www.biorxiv.org/content/10.1101/2021.10.31.466667v1.full
+
+-------------------------
 
 **installation/dependencies**
 
@@ -17,7 +19,7 @@ The project has a pip-installable package. How to set it up:
 - cd ../predictive_neuron/
 - pip install -e .
 
-**Structure**
+**structure**
 
 this repo is structured as follows:
 
@@ -31,7 +33,4 @@ this repo is structured as follows:
 + `./predictive_neuron/` contains the Python modules and the helper functions for the analysis
 + `./scripts/`
 
-
----
-
-_._
+-------------------------
