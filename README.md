@@ -8,6 +8,8 @@ M Saponati, M Vinck<br/>
 (2021, BiorXiv) (under revision)<br/>
 https://www.biorxiv.org/content/10.1101/2021.10.31.466667v1.full
 
+![](./imgs/model_description.png)
+
 -------------------------
 
 **installation/dependencies**
