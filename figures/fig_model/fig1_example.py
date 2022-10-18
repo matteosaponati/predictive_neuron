@@ -16,6 +16,7 @@ Author:
 
 import numpy as np
 import types
+import os
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
@@ -51,6 +52,8 @@ w1_tot, w2_tot = [],[]
 v_tot, spk_tot = [], []    
 for k in range(len(w_0)):
     
+    print('initial conditions {}'.format(w_0[k]))
+    
     'numerical solution'
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0[k]*np.ones(par.N)
@@ -62,8 +65,24 @@ for k in range(len(w_0)):
     v_tot.append(v)
     spk_tot.append(spk)
     
+'-------------------------------'
 'plots'
 c=['mediumvioletred','mediumslateblue','lightseagreen','salmon']
+
+'Panel b'
+
+fig = plt.figure(figsize=(6,6), dpi=300)
+plt.plot(v_tot[2][0],color='navy',linewidth=2,label='epoch 0')
+plt.plot(v_tot[2][100],color='blue',linewidth=2,label='epoch 100')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.legend()
+plt.xlabel(r'time')
+plt.ylabel('v')
+plt.savefig(os.getcwd()+'/plots/v_example.png',format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/plots/v_example.pdf',format='pdf', dpi=300)
+plt.close('all')
+
+'Panel c'
 
 fig = plt.figure(figsize=(6,6), dpi=300)
 for s in range(len(spk_tot)):
@@ -77,8 +96,8 @@ plt.xlim(0,par.epochs)
 plt.ylim(0,10)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('s_convergence.png',format='png', dpi=300)
-plt.savefig('s_convergence.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/s_convergence.png',format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/plots/s_convergence.pdf',format='pdf', dpi=300)
 plt.close('all')
 
 fig = plt.figure(figsize=(6,6), dpi=300)
@@ -91,24 +110,12 @@ plt.xlim(0,par.epochs)
 plt.ylim(bottom=0)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('w_convergence.png',format='png', dpi=300)
-plt.savefig('w_convergence.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/w_convergence.png',format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/plots/w_convergence.pdf',format='pdf', dpi=300)
 plt.close('all')
 
-fig = plt.figure(figsize=(6,6), dpi=300)
-plt.plot(v_tot[2][0],color='navy',linewidth=2,label='epoch 0')
-plt.plot(v_tot[2][100],color='blue',linewidth=2,label='epoch 100')
-plt.legend()
-plt.xlabel(r'time')
+'Panel d'
 
-'----------'
-'----------'
-
-"""
-dynamics in the parameter space
-inputs:
-    1. w_sweep: set of initial conditions to sample parameter space
-"""
 w_sweep = np.arange(.01,.15,.01)
 par.eta = 1e-4
 par.epochs = 10
@@ -126,7 +133,6 @@ for k in range(len(w_sweep)):
         
 dw_1, dw_2 = w_1 - np.tile(w_sweep,(len(w_sweep),1)).T, w_2 - np.tile(w_sweep,(len(w_sweep),1))
 
-'plot'
 fig = plt.figure(figsize=(7,7), dpi=300)
 plt.xlabel(r'$w_{2}$')
 plt.ylabel(r'$w_{1}$')
@@ -138,7 +144,8 @@ plt.yticks(np.arange(len(w_sweep))[::8],np.round(w_sweep,2)[::8])
 'plot vector field'
 x,y = np.meshgrid(np.arange(len(w_sweep)),np.arange(len(w_sweep)))
 plt.quiver(x,y,dw_2,dw_1,angles='xy',color='mediumvioletred',headwidth=2)
+plt.plot(w2_tot[-1],w1_tot[-1],linewidth=2,color='k')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('vector_field.png', format='png', dpi=300)
-plt.savefig('vector_field.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/vector_field.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/plots/vector_field.pdf', format='pdf', dpi=300)
 plt.close('all')
