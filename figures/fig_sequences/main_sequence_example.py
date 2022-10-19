@@ -14,6 +14,7 @@ Author:
 ----------------------------------------------
 """
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -35,7 +36,7 @@ par = types.SimpleNamespace()
 par.name = 'sequence'
 par.device = 'cpu'
 par.dt = .05
-par.eta = 5e-4
+par.eta = 1e-4
 par.tau_m = 10.
 par.v_th = 1.5
 par.tau_x = 2.
@@ -50,12 +51,12 @@ timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
 
 'set training algorithm'
 par.bound = 'soft'
-par.epochs = 1000
+par.epochs = 400
 
 'set initialization and training algorithm'
-par.init = 'random'
-par.init_mean = 0.06
-par.init_a, par.init_b = 0, .12
+par.init = 'fixed'
+par.init_mean = 0.2
+par.init_a, par.init_b = 0, .06
 
 'set noise sources'
 par.noise = True
@@ -93,12 +94,17 @@ w,v,spk,loss = funs_train.train_NumPy(par,neuron,timing=timing)
 'plots'
 
 'Panel b'
+fig = plt.figure(figsize=(7,6), dpi=300)
 for k,j in zip(spk,range(par.epochs)):
     plt.scatter([j]*len(k),np.array(k)-par.onset_list[j]*par.dt,c='rebeccapurple',s=2)
-plt.ylabel(r'spike times $s$ [ms]')
+plt.ylabel(r'time [ms]')
 plt.ylim(0,par.T*par.dt)
 plt.xlim(0,par.epochs)
 plt.xlabel('epochs')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(os.getcwd()+'/spk.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/spk.pdf', format='pdf', dpi=300)
+plt.close('all')
 
 fr = np.array([(len(spk[k])/par.T)*(1e3/par.T) for k in range(par.epochs)])
 fig = plt.figure(figsize=(4,6), dpi=300)
@@ -107,23 +113,23 @@ plt.ylabel(r'firing rate [Hz]')
 plt.axhline(y=fr.mean(), color='black',linestyle='dashed',linewidth=1.5)
 plt.plot(fr,'purple',linewidth=2)    
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('fr.png', format='png', dpi=300)
-plt.savefig('fr.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/fr.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/fr.pdf', format='pdf', dpi=300)
 plt.close('all')
 
 'Panel c'
-w = np.vstack(w)
+w_plot = np.vstack(w)
 fig = plt.figure(figsize=(7,6), dpi=300)
 plt.title(r'$\vec{w}/\vec{w}_0$')
 plt.ylabel(r'inputs')
 plt.xlabel(r'epochs')
 plt.xlim(0,par.epochs)
 plt.ylim(0,par.N)
-plt.imshow(w.T/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
+plt.imshow(np.fliplr(w_plot).T/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
 plt.colorbar()
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('w.png', format='png', dpi=300)
-plt.savefig('w.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/w.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/w.pdf', format='pdf', dpi=300)
 plt.close('all')
 
 ig = plt.figure(figsize=(1.5,5), dpi=300)
@@ -132,6 +138,6 @@ plt.xlim(-.5,.5)
 plt.xticks([],[])
 plt.imshow(w[:,0:10]/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('w_conv.png', format='png', dpi=300)
-plt.savefig('w_conv.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/w_conv.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/w_conv.pdf', format='pdf', dpi=300)
 plt.close('all')
