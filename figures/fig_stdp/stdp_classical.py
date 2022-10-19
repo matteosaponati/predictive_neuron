@@ -15,6 +15,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -30,13 +31,12 @@ def train_stdp(par,neuron,x_data):
         neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
         w1.append(neuron.w[0].item())
         w2.append(neuron.w[1].item())
-        if e%10 == 0: print(e)        
+        if e%10 == 0: print('pairing protocol {} out of {}'.format(e,par.epochs))        
     return w1, w2
 '---------------------------------------------'
 
 'set model'
 par = types.SimpleNamespace()
-par.device = 'cpu'
 par.dt = .05
 par.eta = 2e-4
 par.tau_m = 10.
@@ -46,7 +46,7 @@ par.bound = 'soft'
 
 'set inputs'
 par.N = 2
-par.T = int(200/par.dt)
+par.T = int(400/par.dt)
 par.epochs = 60
 
 'initial conditions'
@@ -59,7 +59,7 @@ inputs:
     1. delay: range of delay considered
     2. tau_sweep: different values of the membrane time constant
 """
-delay = (np.arange(2,50,5)/par.dt).astype(int)
+delay = (np.arange(2,60,5)/par.dt).astype(int)
 tau_sweep = [10.,15.,20.]
 
 w_prepost  = [[] for k in range(len(tau_sweep))]
@@ -101,6 +101,6 @@ plt.ylabel(r'$w/w_0$')
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.axvline(x=0, color='black',linewidth=1.5)
 fig.tight_layout(rect=[0, 0.01, 1, 0.96])
-plt.savefig('stdp_window.png', format='png', dpi=300)
-plt.savefig('stdp_window.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_window.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/plots/stdp_window.pdf', format='pdf', dpi=300)
 plt.close('all')

@@ -16,6 +16,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -31,13 +32,12 @@ def train_stdp(par,neuron,x_data):
         neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
         w1.append(neuron.w[0].item())
         w2.append(neuron.w[1].item())
-        if e%10 == 0: print(e)        
+        if e%10 == 0: print('pairing protocol {} out of {}'.format(e,par.epochs))        
     return w1, w2
 '---------------------------------------------'
 
 'set model'
 par = types.SimpleNamespace()
-par.device = 'cpu'
 par.dt = .05
 par.eta = 3.4e-5
 par.tau_m = 16.
@@ -63,18 +63,17 @@ dt_burst, dt = (np.array([100.,20.,10.])/par.dt).astype(int) , int(6/par.dt)
 w_post = []
 for k in dt_burst:
 
-    'set inputs'
     timing = [np.arange(0,k*5,k),np.arange(0,k*5,k)+dt]
     x_data = funs.get_sequence_stdp(par,timing)
-    'numerical solutions'
+    
+    'post-pre protocol'
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0.copy()
     w1,w2 = train_stdp(par,neuron,x_data)
-    'get weights'
     w_post.append(w2[-1])
 
 'plot'
-savedir = '/Users/saponatim/Desktop/'
+
 fig = plt.figure(figsize=(6,6), dpi=300)
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.scatter(1e3/(np.array(dt_burst)*par.dt),np.array(w_post)/w_0[1],color='rebeccapurple',s=40)
@@ -88,8 +87,8 @@ fig.tight_layout(rect=[0, 0.01, 1, 0.96])
 plt.xlabel(r'frequency [Hz]')
 plt.ylabel(r'$w/w_0$')
 plt.ylim(.5,1.5)
-plt.savefig(savedir+'stdp_froemke2006_frequency.pdf', format='pdf', dpi=300)
-plt.savefig(savedir+'stdp_froemke2006_frequency.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/plots/stdp_froemke2006_frequency.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_froemke2006_frequency.png', format='png', dpi=300)
 plt.close('all')
 
 "RMS error"

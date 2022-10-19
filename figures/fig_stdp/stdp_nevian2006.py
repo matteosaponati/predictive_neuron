@@ -16,6 +16,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -31,13 +32,12 @@ def train_stdp(par,neuron,x_data):
         neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
         w1.append(neuron.w[0].item())
         w2.append(neuron.w[1].item())
-        if e%10 == 0: print(e)        
+        if e%10 == 0: print('pairing protocol {} out of {}'.format(e,par.epochs))        
     return w1, w2
 '---------------------------------------------'
 
 'set model'
 par = types.SimpleNamespace()
-par.device = 'cpu'
 par.dt = .05
 par.eta = 2e-4
 par.tau_m = 25.
@@ -65,9 +65,7 @@ dt_burst, dt = (np.array([10.,20.,50.])/par.dt).astype(int), int(10./par.dt)
 w_pre,w_post = [],[]
 for j in dt_burst:
     
-    'pre-post protocol'
     timing_pre = [np.array(0),dt+np.arange(0,j*n_spikes,j)]
-    'post-pre protocol'
     timing_post = [np.arange(0,j*n_spikes,j),np.array(np.arange(0,j*n_spikes,j)[-1]+ dt)] 
     
     'pre-post protocol'
@@ -85,6 +83,7 @@ for j in dt_burst:
     w_post.append(w2[-1])
 
 'plot'
+
 fig = plt.figure(figsize=(6,6), dpi=300)
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.plot(1e3/(dt_burst[::-1]*par.dt),np.array(w_pre)[::-1]/w_0[0],color='royalblue',linewidth=2,label='pre-post')
@@ -100,8 +99,8 @@ plt.errorbar(x,y_post,yerr = y_post_e,color='k',linestyle='None')
 fig.tight_layout(rect=[0, 0.01, 1, 0.96])
 plt.xlabel(r'frequency [Hz]')
 plt.ylabel(r'$w/w_0$')
-plt.savefig('stdp_nevian2006.png', format='png', dpi=300)
-plt.savefig('stdp_nevian2006.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_nevian2006.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/plots/stdp_nevian2006.pdf', format='pdf', dpi=300)
 plt.close('all')
 
 "RMS error"

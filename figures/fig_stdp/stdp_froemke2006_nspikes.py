@@ -16,6 +16,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -31,13 +32,12 @@ def train_stdp(par,neuron,x_data):
         neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
         w1.append(neuron.w[0].item())
         w2.append(neuron.w[1].item())
-        if e%10 == 0: print(e)        
+        if e%10 == 0: print('pairing protocol {} out of {}'.format(e,par.epochs))     
     return w1, w2
 '---------------------------------------------'
 
 'set model'
 par = types.SimpleNamespace()
-par.device = 'cpu'
 par.dt = .05
 par.eta = 8e-5
 par.tau_m = 40.
@@ -65,14 +65,13 @@ dt_burst, dt = int(10/par.dt), int(5/par.dt)
 w_post = []
 for k in np.arange(1,n_spk+1):
 
-    'set inputs'
     timing = [(np.arange(0,10*k,10)/par.dt).astype(int),dt]
     x_data = funs.get_sequence_stdp(par,timing)
-    'numerical solutions'
+ 
+    'postp-pre potocol'
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0.copy()
     w1,w2 = train_stdp(par,neuron,x_data)
-    'get weights'
     w_post.append(w2[-1])
 
 'plot'
@@ -90,10 +89,9 @@ plt.ylabel(r'$w/w_0$')
 plt.xlabel(r'# spikes')
 plt.xticks(np.arange(1,n_spk+1),np.arange(1,n_spk+1))
 plt.ylim(.5,1.5)
-plt.savefig(savedir+'/stdp_froemke2006_nspikes.pdf', format='pdf', dpi=300)
-plt.savefig(savedir+'/stdp_froemke2006_nspikes.png', format='png', dpi=300)
+# plt.savefig(os.getcwd()+'/plots/stdp_froemke2006_nspikes.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_froemke2006_nspikes.png', format='png', dpi=300)
 plt.close('all')
 
 "RMS error"
 error = np.sqrt(np.sum((np.array(w_post)/w_0[1] - np.array(y))**2)/len(y))
-#%%
