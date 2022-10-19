@@ -19,9 +19,9 @@ https://www.biorxiv.org/content/10.1101/2021.10.31.466667v1.full
 The current version of the scripts have been tested with Python 3.8. All the dependencies are listed in the environment.yml file. 
 The project has a pip-installable package. How to set it up:
 
-- git clone the repository 
-- cd ../predictive_neuron/
-- pip install -e .
+- `git clone` the repository 
+- `cd ../predictive_neuron/`
+- `pip install -e . `
 
 **structure**
 
