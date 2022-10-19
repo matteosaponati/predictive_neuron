@@ -36,7 +36,7 @@ par = types.SimpleNamespace()
 par.name = 'sequence'
 par.device = 'cpu'
 par.dt = .05
-par.eta = 1e-4
+par.eta = 7e-4
 par.tau_m = 10.
 par.v_th = 1.5
 par.tau_x = 2.
@@ -51,12 +51,12 @@ timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
 
 'set training algorithm'
 par.bound = 'soft'
-par.epochs = 400
+par.epochs = 500
 
 'set initialization'
 par.init = 'fixed'
-par.init_mean = 0.2
-par.init_a, par.init_b = 0, .06
+par.init_mean = 0.1
+par.init_a, par.init_b = 0, .03
 
 'set noise sources'
 par.noise = True
