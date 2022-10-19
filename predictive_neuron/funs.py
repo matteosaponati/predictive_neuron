@@ -63,6 +63,7 @@ def get_multisequence(par,timing):
     
     if par.freq_noise == True:
         prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+        # prob = ((par.freq*par.dt)/1000)*torch.ones(par.N)
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
         for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
     else:
@@ -74,13 +75,13 @@ def get_multisequence(par,timing):
             timing_err = np.array(timing[b]) + \
                             (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
             x_data[b,timing_err,par.N_subseq[b]] = 1
-        else: x_data[b,timing_err,par.N_subseq[b]] = 1
+        else: x_data[b,timing[b],par.N_subseq[b]] = 1
         
     'synaptic time constant'
     filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
                                 for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
     x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
-                         padding=par.T,groups=par.N)[:,:,1:par.T+1]
+                          padding=par.T,groups=par.N)[:,:,1:par.T+1]
 
     return x_data.permute(0,2,1)
 
@@ -159,11 +160,11 @@ def get_sequence_nn_selforg(par,timing):
 
         'add background firing'         
         if par.freq_noise == True:
-            prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
-            x = torch.zeros(par.batch,par.T,par.N).to(par.device)
-            for n in range(par.N): x[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
+            prob = (np.random.randint(0,par.freq,par.n_in)*par.dt)/1000
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+            for nin in range(par.n_in): x[:,:,nin][torch.rand(par.batch,par.T).to(par.device)<prob[nin]] = 1        
         else:
-            x = torch.zeros(par.batch,par.T,par.N).to(par.device)
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
             
         'create sequence + jitter' 
         for b in range(par.batch):

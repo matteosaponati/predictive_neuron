@@ -149,7 +149,7 @@ def initialize_weights_PyTorch(par,neuron):
     
     if par.init == 'random':
         neuron.w = nn.Parameter(torch.empty(par.N)).to(par.device)
-        torch.nn.init.trunc_normal_(neuron.w, mean=par.init_mean, std=.1/np.sqrt(par.N),
+        torch.nn.init.trunc_normal_(neuron.w, mean=par.init_mean, std=1/np.sqrt(par.N),
                                     a=par.init_a,b=par.init_b)
     if par.init == 'fixed':
         neuron.w = nn.Parameter(par.init_mean*torch.ones(par.N)).to(par.device)
@@ -158,7 +158,7 @@ def initialize_weights_PyTorch(par,neuron):
     
 def forward_PyTorch(par,neuron,x):
     
-    v,z = [], []
+    v,z = [], [[] for b in range(par.batch)]
     
     for t in range(par.T):            
 
@@ -175,8 +175,9 @@ def forward_PyTorch(par,neuron,x):
                 neuron.update_online()            
 
         'update of the neuronal variables - forward pass'
-        neuron(x[:,t])        
-        if neuron.z[0] != 0: z.append(t*par.dt)    
+        neuron(x[:,t])   
+        for b in range(par.batch):
+            if neuron.z[b] != 0: z[b].append(t*par.dt)    
         
     return neuron, torch.stack(v,dim=1), z
 
@@ -226,11 +227,12 @@ def train_PyTorch(par,neuron,x=None,timing=None):
         if par.optimizer != "online":
             optimizer.zero_grad()
             E.backward()
+            # print(neuron.w.grad)
             optimizer.step()
         
         'save output'
         loss_list.append(E.item())
-        w_list.append(neuron.w.detach().numpy())
+        w_list.append(neuron.w.detach().clone().numpy())
         v_list.append(v.detach().numpy())
         spk_list.append(z)
         
@@ -272,7 +274,7 @@ def forward_nn_PyTorch(par,network,x_data):
         """
         if par.online == True: 
             with torch.no_grad():
-                network.backward_online(x_data[:,t])
+                network.backward_online(x_data[:,t,:,:])
                 network.update_online()  
         
         'update of the neuronal variables - forward pass'
@@ -295,7 +297,7 @@ def train_nn_PyTorch(par,network,x=None,timing=None):
         
         if par.noise == True:            
             x = funs.get_sequence_nn_selforg(par,timing)
-        
+
         """
         1.initialize neuron state
         2. update weights (backward pass)
