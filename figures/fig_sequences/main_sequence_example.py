@@ -53,7 +53,7 @@ timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
 par.bound = 'soft'
 par.epochs = 400
 
-'set initialization and training algorithm'
+'set initialization'
 par.init = 'fixed'
 par.init_mean = 0.2
 par.init_a, par.init_b = 0, .06
