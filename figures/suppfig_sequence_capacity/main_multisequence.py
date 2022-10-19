@@ -49,7 +49,7 @@ par.tau_x = 2.
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.N_sub = 10
+par.N_sub = 8
 par.delay = 40
 par.batch = 4
 par.N = par.N_sub*par.batch 
@@ -66,15 +66,15 @@ par.epochs = 500
 
 'set initialization'
 par.init = 'fixed'
-par.init_mean = 0.03
+par.init_mean = 0.06
 par.init_a, par.init_b = 0, .06
 
 'set noise sources'
 par.name = 'multisequence'
 par.noise = True
-par.freq_noise = True
-par.freq = 10
-par.jitter_noise = True
+par.freq_noise = False
+par.freq = 5
+par.jitter_noise = False
 par.jitter = 2
 par.T = int((par.Dt*par.N + par.jitter)/(par.dt))
 
@@ -83,6 +83,7 @@ par.T = int((par.Dt*par.N + par.jitter)/(par.dt))
 'fix seed'
 np.random.seed(1992)
 
+#%%
 'set model'
 neuron = models.NeuronClass(par)
 neuron = funs_train.initialize_weights_PyTorch(par,neuron)
@@ -127,8 +128,6 @@ plt.savefig(os.getcwd()+'/w.png', format='png', dpi=300)
 # plt.savefig(os.getcwd()+'/w.pdf', format='pdf', dpi=300)
 plt.close('all')
 
-
-
 #%%
 w_plot = np.vstack(w)
 plt.imshow(w_plot,aspect='auto')
@@ -143,7 +142,7 @@ for b in range(par.batch):
         spk_plot[b].append(spk[e][b])
 
 #%%
-b = 2
+b = 3
 for k,j in zip(spk_plot[b],range(par.epochs)):
     plt.scatter([j]*len(k),np.array(k),c='rebeccapurple',s=2)
 plt.ylabel(r'time [ms]')
