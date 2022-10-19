@@ -25,7 +25,6 @@ from predictive_neuron import models, funs, funs_train
 
 'set model'
 par = types.SimpleNamespace()
-par.device = 'cpu'
 par.dt = .05
 par.eta = 5e-4
 par.tau_m = 10.
@@ -144,7 +143,6 @@ plt.yticks(np.arange(len(w_sweep))[::8],np.round(w_sweep,2)[::8])
 'plot vector field'
 x,y = np.meshgrid(np.arange(len(w_sweep)),np.arange(len(w_sweep)))
 plt.quiver(x,y,dw_2,dw_1,angles='xy',color='mediumvioletred',headwidth=2)
-plt.plot(w2_tot[-1],w1_tot[-1],linewidth=2,color='k')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(os.getcwd()+'/plots/vector_field.png', format='png', dpi=300)
 # plt.savefig(os.getcwd()+'/plots/vector_field.pdf', format='pdf', dpi=300)
