@@ -49,9 +49,9 @@ par.tau_x = 2.
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.N_sub = 8
+par.N_sub = 20
 par.delay = 40
-par.batch = 4
+par.batch = 3
 par.N = par.N_sub*par.batch 
 par.N_subseq = [np.arange(k,k+par.N_sub) 
                     for k in np.arange(0,par.N+par.N_sub,par.N_sub)]
@@ -62,16 +62,16 @@ for b in range(par.batch):
 'set training algorithm'
 par.optimizer = 'Adam'
 par.bound = 'none'
-par.epochs = 500
+par.epochs = 600
 
 'set initialization'
 par.init = 'fixed'
-par.init_mean = 0.06
+par.init_mean = 0.02
 par.init_a, par.init_b = 0, .06
 
 'set noise sources'
 par.name = 'multisequence'
-par.noise = True
+par.noise = False
 par.freq_noise = False
 par.freq = 5
 par.jitter_noise = False
@@ -90,6 +90,9 @@ neuron = funs_train.initialize_weights_PyTorch(par,neuron)
 
 'training'
 w,v,spk,loss = funs_train.train_PyTorch(par,neuron,timing=timing)
+
+x = funs.get_multisequence(par,timing)
+w,v,spk,loss = funs_train.train_PyTorch(par,neuron,x=x)
 
 #%%
 'plots'
@@ -135,14 +138,13 @@ plt.imshow(w_plot,aspect='auto')
 #%%
 b = 0
 
-
 spk_plot = [[] for b in range(par.batch)]
 for b in range(par.batch):
     for e in range(par.epochs):
         spk_plot[b].append(spk[e][b])
 
 #%%
-b = 3
+b = 0
 for k,j in zip(spk_plot[b],range(par.epochs)):
     plt.scatter([j]*len(k),np.array(k),c='rebeccapurple',s=2)
 plt.ylabel(r'time [ms]')
