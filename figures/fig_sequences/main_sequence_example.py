@@ -36,9 +36,9 @@ par = types.SimpleNamespace()
 par.name = 'sequence'
 par.device = 'cpu'
 par.dt = .05
-par.eta = 7e-4
+par.eta = 5e-4
 par.tau_m = 10.
-par.v_th = 1.5
+par.v_th = 1.4
 par.tau_x = 2.
 
 'set input'
@@ -51,7 +51,7 @@ timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
 
 'set training algorithm'
 par.bound = 'soft'
-par.epochs = 500
+par.epochs = 1000
 
 'set initialization'
 par.init = 'fixed'
@@ -125,19 +125,9 @@ plt.ylabel(r'inputs')
 plt.xlabel(r'epochs')
 plt.xlim(0,par.epochs)
 plt.ylim(0,par.N)
-plt.imshow(np.fliplr(w_plot).T/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
+plt.imshow(w_plot.T/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
 plt.colorbar()
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.savefig(os.getcwd()+'/w.png', format='png', dpi=300)
 # plt.savefig(os.getcwd()+'/w.pdf', format='pdf', dpi=300)
-plt.close('all')
-
-ig = plt.figure(figsize=(1.5,5), dpi=300)
-plt.ylim(0,par.N-1)
-plt.xlim(-.5,.5)
-plt.xticks([],[])
-plt.imshow(w[:,0:10]/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig(os.getcwd()+'/w_conv.png', format='png', dpi=300)
-# plt.savefig(os.getcwd()+'/w_conv.pdf', format='pdf', dpi=300)
 plt.close('all')
