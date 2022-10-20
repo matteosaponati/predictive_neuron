@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('--batch', type=int, default=1) 
     parser.add_argument('--eta',type=float, default=1e-5)
     parser.add_argument('--bound',type=str, default='none')
-    parser.add_argument('--epochs', type=int, default=1000)
+    parser.add_argument('--epochs', type=int, default=10)
     
     'initialization'
     parser.add_argument('--init',type=str, 
@@ -45,6 +45,7 @@ if __name__ == '__main__':
     parser.add_argument('--n_in', type=int, default=26)
     parser.add_argument('--delay', type=int, default=4)
     parser.add_argument('--Dt', type=int, default=2)
+    parser.add_argument('--noise', type=bool, default=True)
     parser.add_argument('--freq_noise', type=bool, default=True)
     parser.add_argument('--freq', type=float, default=.01) 
     parser.add_argument('--jitter_noise', type=bool, default=True) 
@@ -69,7 +70,8 @@ if __name__ == '__main__':
     '-------------'
     
     'set simulation length'
-    par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
+    par.T = int((par.nn*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
+#    par.T = int((par.nn*par.delay + par.n_in*par.Dt + 80)/par.dt)
     
     'set model'
     network = models.NetworkClass_SelfOrg_NumPy(par)
