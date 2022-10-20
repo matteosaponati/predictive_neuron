@@ -116,10 +116,19 @@ plt.ylim(1,par.nn)
 plt.xlim(0,par.T*par.dt)
 plt.xlabel('time [ms]')
 
+#%%
+
+n = 6
+
+for k in range(26):
+    plt.plot(w[:,k,n],color='grey')
+plt.plot(w[:,-2,n],color='red')
+plt.plot(w[:,-1,n],color='blue')
+
 
 
 #%%
-plt.imshow(w[-10])
+plt.imshow(w[1,:,:])
 plt.colorbar()
 
 
