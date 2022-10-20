@@ -185,9 +185,6 @@ def get_sequence_nn_selforg(par,timing):
 
     return torch.stack(x_data,dim=3)
 
-
-
-
 def get_sequence_nn_selforg_NumPy(par,timing):
     
     'loop on neurons in the network'

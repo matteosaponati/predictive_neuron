@@ -127,7 +127,7 @@ def train_nn_NumPy(par,network,x=None,timing=None):
         'upload or create inputs'
         if par.noise == True:      
             if par.upload_data == True:
-                x = np.load(par.load_dir+'x_data_{}'.format(np.randint(1000)))
+                x = np.load(par.load_dir+'x_data_{}.npy'.format(np.random.randint(1000)))
             else:
                 x = funs.get_sequence_nn_selforg_NumPy(par,timing)
         
