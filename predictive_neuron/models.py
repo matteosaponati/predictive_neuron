@@ -194,71 +194,6 @@ class NetworkClass_SelfOrg(nn.Module):
         self.epsilon = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
         self.grad = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)  
 
-    # def __call__(self,x):
-        
-    #     'create total input'
-    #     x_tot = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
-    #     self.z_out = self.beta*self.z_out + self.z.detach()
-        
-    #     for n in range(self.par.nn):
-    #         if n == 0:
-    #             x_tot[:,:,n] = torch.cat([x[:,:,n],
-    #                                     torch.cat([torch.zeros(self.par.batch,1),
-    #                                                self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)   
-    #         if n == self.par.nn-1:
-    #             x_tot[:,:,n] = torch.cat([x[:,:,n],
-    #                                     torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
-    #                                               torch.zeros(self.par.batch,1)],dim=1)],dim=1)   
-    #         else:
-    #             x_tot[:,:,n] = torch.cat([x[:,:,n],
-    #                                         torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
-    #                                                    self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)        
-    #     'update membrane voltages'
-    #     for b in range(self.par.batch):
-    #         self.v[b,:] = self.alpha*self.v[b,:] + torch.sum(x_tot[b,:]*self.w,dim=0) \
-    #                  - self.par.v_th*self.z[b,:].detach()
-        
-    #     'update output spikes'
-    #     self.z = torch.zeros(self.par.batch,self.par.nn).to(self.par.device)
-    #     self.z[self.v-self.par.v_th>0] = 1
-        
-    # def backward_online(self,x):
-    #     """
-    #     online evaluation of the gradient:
-    #         - compute the local prediction error 
-    #         - compute the local component of the gradient
-    #         - update the pre-synaptic traces
-    #     """
-        
-    #     'create total input'
-    #     x_tot = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn).to(self.par.device)
-    #     for n in range(self.par.nn):
-    #         if n == 0:
-    #             x_tot[:,:,n] = torch.cat([x[:,:,n],
-    #                                     torch.cat([torch.zeros(self.par.batch,1),
-    #                                                self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1)   
-    #         if n == self.par.nn-1:
-    #             x_tot[:,:,n] = torch.cat([x[:,:,n],
-    #                                     torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
-    #                                               torch.zeros(self.par.batch,1)],dim=1)],dim=1)   
-    #         else:
-    #             x_tot[:,:,n] = torch.cat([x[:,:,n],
-    #                                         torch.cat([self.z_out.detach()[:,n-1].unsqueeze(1),
-    #                                                    self.z_out.detach()[:,n+1].unsqueeze(1)],dim=1)],dim=1) 
-        
-    #     x_hat = torch.zeros(self.par.batch,self.par.n_in+2,self.par.nn)
-    #     for b in range(self.par.batch):
-    #         x_hat[b,:] = self.w*self.v[b,:]
-    #         self.epsilon[b,:] = x_tot[b,:] - x_hat[b,:]
-    #         self.grad[b,:] = -(self.v[b,:]*self.epsilon[b,:] \
-    #                          + torch.sum(self.w*self.epsilon[b,:],dim=0)*self.p[b,:])
-    #     self.p = self.alpha*self.p + x_tot
-        
-    # def update_online(self):
-    #     self.w =  nn.Parameter(self.w - 
-    #                            self.par.eta*torch.mean(self.grad,dim=0))
-    
-    
     def __call__(self,x):
         
         'create total input'
@@ -360,6 +295,75 @@ class NetworkClass_SelfOrg_NumPy():
         x_tot = np.zeros((self.par.n_in+2,self.par.nn))
         self.z_out = self.beta*self.z_out + self.z
         for n in range(self.par.nn): 
+            if n == 0:
+                x_tot[:,n] = np.concatenate((x[:,n],np.array([0,self.z_out[n+1]])),axis=0)       
+            elif n == self.par.nn-1:
+                x_tot[:,n] = np.concatenate((x[:,n],np.array([self.z_out[n-1],0])),axis=0)   
+            else: 
+                x_tot[:,n] = np.concatenate((x[:,n],np.array([self.z_out[n-1],self.z_out[n+1]])),axis=0) 
+                
+        'compute prediction error (eq 4) and update parameters (eq 3)'
+        self.epsilon = x_tot - self.w*self.v
+        self.grad = self.v*self.epsilon \
+                         + np.sum(self.w*self.epsilon,axis=0)*self.p
+        self.p = self.alpha*self.p + x_tot
+        
+        'soft: apply soft lower-bound, update proportional to parameters'
+        'hard: apply hard lower-bound, hard-coded positive parameters'
+        
+        if self.par.bound == 'soft':
+            self.w = self.w + self.w*self.par.eta*self.grad
+        elif self.par.bound == 'hard':
+            self.w = self.w + self.par.eta*self.grad
+            self.w = np.where(self.w<0,np.zeros_like(self.w),self.w)
+        else: self.w = self.w + self.par.eta*self.grad
+                
+        'update membrane voltage (eq 1)'
+        self.v = self.alpha*self.v + np.sum(x_tot*self.w,axis=0) \
+                 - self.par.v_th*self.z
+        self.z = np.zeros(self.par.nn)
+        self.z[self.v-self.par.v_th>0] = 1
+        
+class NetworkClass_SelfOrg_AlltoAll():
+    """
+    NETWORK MODEL
+    - get the input vector at the current timestep
+    - compute the current prediction error
+    - update the recursive part of the gradient and the membrane potential
+    - thresholding nonlinearity and evaluation of output spike
+    inputs:
+        par: model parameters
+    """
+    
+    def __init__(self,par):
+        
+        self.par = par  
+        self.alpha = (1-self.par.dt/self.par.tau_m)  
+        self.beta = (1-self.par.dt/self.par.tau_x)              
+        self.w = np.zeros((self.par.n_in+self.par.lateral,self.par.nn))
+        
+    def state(self):
+        """initialization of network state"""
+
+        self.v = np.zeros(self.par.nn)
+        self.z = np.zeros(self.par.nn)
+        self.z_out = np.zeros(self.par.nn)
+        'external inputs + recurrent connections'
+        self.p = np.zeros((self.par.n_in+self.par.nn,self.par.nn))
+        self.epsilon = np.zeros((self.par.n_in+self.par.nn,self.par.nn))
+        self.grad = np.zeros((self.par.n_in+self.par.nn,self.par.nn))  
+
+    def __call__(self,x):
+        
+        'create total input'
+        x_tot = np.zeros((self.par.n_in+par.nn,self.par.nn))
+        self.z_out = self.beta*self.z_out + self.z
+        for n in range(self.par.nn): 
+            
+            x_tot[:,n] = np.concatenate((x[:,n],np.array([self.z_out[n-1],0])),axis=0)  
+            
+            
+            
             if n == 0:
                 x_tot[:,n] = np.concatenate((x[:,n],np.array([0,self.z_out[n+1]])),axis=0)       
             elif n == self.par.nn-1:
