@@ -32,7 +32,7 @@ savedir = '/gs/home/saponatim/'
 
 'set model'
 par = types.SimpleNamespace()
-par.epochs = 1000
+par.epochs = 100
 par.device = 'cpu'
 par.dt = .05
 par.eta = 1e-3

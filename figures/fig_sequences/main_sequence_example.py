@@ -13,6 +13,7 @@ Author:
     in cooperation with the Max-Planck Society
 ----------------------------------------------
 """
+
 import numpy as np
 import os
 import types
@@ -34,7 +35,6 @@ par = types.SimpleNamespace()
 
 'set model'
 par.name = 'sequence'
-par.device = 'cpu'
 par.dt = .05
 par.eta = 5e-4
 par.tau_m = 10.

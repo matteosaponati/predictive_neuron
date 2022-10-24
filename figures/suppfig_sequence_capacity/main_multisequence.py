@@ -32,7 +32,7 @@ class MidpointNormalize(colors.Normalize):
 		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-from predictive_neuron import models, funs_train
+from predictive_neuron import models, funs_train, funs
 
 savedir = '/gs/home/saponatim/'
 
@@ -42,15 +42,15 @@ par.epochs = 100
 par.device = 'cpu'
 par.dt = .05
 par.eta = 1e-3
-par.tau_m = 15.
+par.tau_m = 30.
 par.v_th = 1.5
 par.tau_x = 2.
 
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.N_sub = 20
-par.delay = 40
+par.N_sub = 4
+par.delay = 4
 par.batch = 3
 par.N = par.N_sub*par.batch 
 par.N_subseq = [np.arange(k,k+par.N_sub) 
@@ -71,11 +71,11 @@ par.init_a, par.init_b = 0, .06
 
 'set noise sources'
 par.name = 'multisequence'
-par.noise = False
-par.freq_noise = False
-par.freq = 5
-par.jitter_noise = False
-par.jitter = 2
+par.noise = True
+par.freq_noise = True
+par.freq = 1
+par.jitter_noise = True
+par.jitter = 1
 par.T = int((par.Dt*par.N + par.jitter)/(par.dt))
 
 '---------------------------------------------'
@@ -91,8 +91,8 @@ neuron = funs_train.initialize_weights_PyTorch(par,neuron)
 'training'
 w,v,spk,loss = funs_train.train_PyTorch(par,neuron,timing=timing)
 
-x = funs.get_multisequence(par,timing)
-w,v,spk,loss = funs_train.train_PyTorch(par,neuron,x=x)
+# x = funs.get_multisequence(par,timing)
+# w,v,spk,loss = funs_train.train_PyTorch(par,neuron,x=x)
 
 #%%
 'plots'
