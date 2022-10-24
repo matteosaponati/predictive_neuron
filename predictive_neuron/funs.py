@@ -59,6 +59,36 @@ def get_sequence(par,timing,onset=None):
     
     return x_data.permute(0,2,1), onset
 
+def get_sequence_rhythms(par,timing,onset=None):
+    
+    if par.onset == True: timing += onset
+        
+    if par.freq_noise == True:
+        prob = (np.random.randint(0,par.freq,par.N_dist)*par.dt)/1000
+        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
+        for n in range(par.N_seq,par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
+    else:
+        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
+        
+    if par.jitter_noise == True:
+         for b in range(par.batch):
+             for n in range(par.N_seq):
+             
+                 timing_err = np.array(timing[n]) + \
+                                 np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
+                 x_data[b,timing_err.tolist(),n] = 1
+    else:
+        for n in range(par.N_seq):
+            x_data[:,timing[n],n] = 1
+    
+    'synaptic time constant'
+    filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+    x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
+                         padding=par.T,groups=par.N)[:,:,1:par.T+1]
+    
+    return x_data.permute(0,2,1), onset
+
 def get_multisequence(par,timing):
     
     if par.freq_noise == True:
@@ -130,6 +160,36 @@ def get_multisequence_NumPy(par,timing):
                            + (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
             x_data[par.N_subseq[b].astype(int),(timing_err).astype(int)] = 1
         else: x_data[par.N_subseq[b],(timing_err).astype(int)] = 1
+        
+    'synaptic time constant'
+    for n in range(par.N):
+        x_data[n,:] = np.convolve(x_data[n,:],
+                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
+        
+    return x_data
+
+def get_rhythms_NumPy(par,timing,onset=None):
+    
+    'set random input onset'
+    if par.onset == True: timing = timing.copy() + onset
+    
+    'set background firing'
+    if par.freq_noise == True:
+        prob = (np.random.randint(0,par.freq,par.N_dist)*par.dt)/1000
+        x_data = np.zeros((par.N,par.T))
+        for n in range(par.N_dist): x_data[par.N_seq+n,:][np.random.rand(par.T)<prob[n]] = 1        
+    else: x_data = np.zeros((par.N,par.T))
+
+    'set jitter'        
+    if par.jitter_noise == True:
+        for n in range(par.N_seq):
+            
+            if np.random.rand() < par.cycle_prob:
+                timing_err = np.array(timing[n][0]) + \
+                            np.random.randint(-par.jitter,par.jitter,len(timing[n][0]))/par.dt
+                x_data[n,timing_err.astype(int).tolist()] = 1
+    else: 
+        for n in range(par.N_seq): x_data[n,timing] = 1
         
     'synaptic time constant'
     for n in range(par.N):

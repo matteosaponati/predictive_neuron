@@ -69,6 +69,9 @@ def train_NumPy(par,neuron,x=None,timing=None):
                                              onset=par.onset_list[e])
             if par.name == 'multisequence': 
                 x = funs.get_multisequence_NumPy(par,timing)
+                
+            if par.name == 'rhythms':
+                x = funs.get_rhythms_NumPy(par,timing)
         
         neuron.state()
         neuron, v, spk, loss = forward_NumPy(par,neuron,x)    
@@ -94,6 +97,20 @@ def initialization_weights_nn_NumPy(par,network):
         
     if par.init == 'fixed':
         network.w = par.init_mean*np.ones((par.n_in+par.lateral,par.nn))
+        network.w[par.n_in:,] = par.w_0rec
+    
+    return network
+
+def initialization_weights_nn_AlltoAll(par,network):
+    
+    if par.init == 'random':
+        network.w = stats.truncnorm((par.init_a-par.init_mean)/(1/np.sqrt(par.n_in+par.nn)), 
+                              (par.init_b-par.init_mean)/(1/np.sqrt(par.n_in+par.nn)), 
+                              loc=par.init_mean, scale=1/np.sqrt(par.n_in+par.nn)).rvs((par.n_in+par.nn,par.nn))
+        network.w[par.n_in:,] = par.w_0rec    
+        
+    if par.init == 'fixed':
+        network.w = par.init_mean*np.ones((par.n_in+par.nn,par.nn))
         network.w[par.n_in:,] = par.w_0rec
     
     return network

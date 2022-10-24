@@ -340,7 +340,7 @@ class NetworkClass_SelfOrg_AlltoAll():
         self.par = par  
         self.alpha = (1-self.par.dt/self.par.tau_m)  
         self.beta = (1-self.par.dt/self.par.tau_x)              
-        self.w = np.zeros((self.par.n_in+self.par.lateral,self.par.nn))
+        self.w = np.zeros((self.par.n_in+self.par.nn,self.par.nn))
         
     def state(self):
         """initialization of network state"""
@@ -356,20 +356,11 @@ class NetworkClass_SelfOrg_AlltoAll():
     def __call__(self,x):
         
         'create total input'
-        x_tot = np.zeros((self.par.n_in+par.nn,self.par.nn))
+        x_tot = np.zeros((self.par.n_in+self.par.nn,self.par.nn))
         self.z_out = self.beta*self.z_out + self.z
         for n in range(self.par.nn): 
             
-            x_tot[:,n] = np.concatenate((x[:,n],np.array([self.z_out[n-1],0])),axis=0)  
-            
-            
-            
-            if n == 0:
-                x_tot[:,n] = np.concatenate((x[:,n],np.array([0,self.z_out[n+1]])),axis=0)       
-            elif n == self.par.nn-1:
-                x_tot[:,n] = np.concatenate((x[:,n],np.array([self.z_out[n-1],0])),axis=0)   
-            else: 
-                x_tot[:,n] = np.concatenate((x[:,n],np.array([self.z_out[n-1],self.z_out[n+1]])),axis=0) 
+            x_tot[:,n] = np.concatenate((x[:,n],np.append(np.delete(self.z_out,n,axis=0),[0],axis=0)),axis=0)  
                 
         'compute prediction error (eq 4) and update parameters (eq 3)'
         self.epsilon = x_tot - self.w*self.v
