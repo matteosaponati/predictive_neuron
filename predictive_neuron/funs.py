@@ -59,6 +59,33 @@ def get_sequence(par,timing,onset=None):
     
     return x_data.permute(0,2,1), onset
 
+def get_multisequence(par,timing):
+    
+    if par.freq_noise == True:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+        # setting all background firing to the same Poisson firing rate
+        # prob = ((par.freq*par.dt)/1000)*torch.ones(par.N)
+        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
+        for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
+    else:
+        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
+    
+    'create sequence' 
+    for b in range(par.batch):
+        if par.jitter_noise == True:
+            timing_err = np.array(timing[b]) + \
+                            (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
+            x_data[b,timing_err,par.N_subseq[b]] = 1
+        else: x_data[b,timing[b],par.N_subseq[b]] = 1
+        
+    'synaptic time constant'
+    filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+    x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
+                          padding=par.T,groups=par.N)[:,:,1:par.T+1]
+
+    return x_data.permute(0,2,1)
+
 def get_sequence_rhythms(par,timing,onset=None):
     
     if par.onset == True: timing += onset
@@ -88,32 +115,6 @@ def get_sequence_rhythms(par,timing,onset=None):
                          padding=par.T,groups=par.N)[:,:,1:par.T+1]
     
     return x_data.permute(0,2,1), onset
-
-def get_multisequence(par,timing):
-    
-    if par.freq_noise == True:
-        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
-        # prob = ((par.freq*par.dt)/1000)*torch.ones(par.N)
-        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-        for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
-    else:
-        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-    
-    'create sequence' 
-    for b in range(par.batch):
-        if par.jitter_noise == True:
-            timing_err = np.array(timing[b]) + \
-                            (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
-            x_data[b,timing_err,par.N_subseq[b]] = 1
-        else: x_data[b,timing[b],par.N_subseq[b]] = 1
-        
-    'synaptic time constant'
-    filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
-                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
-    x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
-                          padding=par.T,groups=par.N)[:,:,1:par.T+1]
-
-    return x_data.permute(0,2,1)
 
 '--------------'
 'get sequence - NumPy version + get sequence for STDP protocols'
@@ -245,6 +246,9 @@ def get_sequence_nn_selforg(par,timing):
 
     return torch.stack(x_data,dim=3)
 
+'--------------'
+'get sequence neural network with trainable recurrent connections - NumPy version'
+
 def get_sequence_nn_selforg_NumPy(par,timing):
     
     'loop on neurons in the network'
@@ -276,30 +280,27 @@ def get_sequence_nn_selforg_NumPy(par,timing):
 
     return np.stack(x_data,axis=2)
 
+'---------------------------------------------'
+'get sequences neural network with inhibition - PyTorch version'
 
-'------------'
-
-
-
-
-def get_multisequence_nn(par,timing):
+def get_nn_multisequence(par,timing):
     
     x_data  = []
     for n in range(par.nn):
         
         'add background firing'         
         if par.freq_noise == True:
-            prob = par.freq*par.dt
-            mask = torch.rand(par.batch,par.T,par.n_in).to(par.device)
-            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
-            x[mask<prob] = 1        
+            prob = (np.random.randint(0,par.freq,par.n_in)*par.dt)/1000
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)     
+            for nin in range(par.n_in): x[:,:,nin][torch.rand(par.batch,par.T).to(par.device)<prob[nin]] = 1 
         else:
             x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
             
         'create sequence + jitter' 
         for b in range(par.batch):
             if par.jitter_noise == True:
-                timing_err = np.array(timing[n][b]) + np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt
+                timing_err = np.array(timing[n][b]) \
+                              +  np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt
                 x[b,timing_err,range(par.n_in)] = 1
             else: x[b,timing[n][b],range(par.n_in)] = 1
         
@@ -308,6 +309,8 @@ def get_multisequence_nn(par,timing):
                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
         x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
                           padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
+            
+        'add to total input'
         x_data.append(x.permute(0,2,1))
 
     return torch.stack(x_data,dim=3)

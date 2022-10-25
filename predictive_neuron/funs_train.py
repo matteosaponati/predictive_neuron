@@ -279,6 +279,19 @@ def initialization_weights_nn_PyTorch(par,network):
     
     return network
 
+def initialize_weights_nn_inhibition_PyTorch(par,network):
+    
+    'set random weights for external pre-synaptic inputs'
+    network.w = nn.Parameter(torch.FloatTensor(par.n_in,par.nn).uniform_(0.,par.w_0))
+    
+    'set recurrent inhibitory connections'
+    if par.is_rec == True: 
+        w_rec = par.w_0rec*np.ones((par.nn,par.nn))
+        w_rec = np.where(np.eye(par.nn)>0,np.zeros_like(w_rec),w_rec)
+        network.wrec = torch.as_tensor(w_rec,dtype=par.dtype).to(par.device)
+
+    return network
+
 def forward_nn_PyTorch(par,network,x_data):
     
     z = [[[] for b in range(par.batch)] for n in range(par.nn)]
@@ -336,6 +349,74 @@ def train_nn_PyTorch(par,network,x=None,timing=None):
 
     return w, v_out, z_out
 
+
+def train_nn_inhibition_PyTorch(par,network,x=None,timing=None):
+    
+    'set loss and optimizer'
+    
+    loss = nn.MSELoss(reduction='sum')
+    
+    'set optimizer for each neuron in the network'
+    optimizerList = []
+    for n in range(par.nn):
+        if par.optimizer == 'Adam':
+            optimizerList.append(torch.optim.Adam(network.parameters(),
+                                  lr=par.eta,betas=(.9,.999)))
+        elif par.optimizer == 'SGD':
+            optimizerList.append(torch.optim.SGD(network.parameters(),lr=par.eta))
+
+    'allocate outputs'
+    loss_list = [[] for n in range(par.nn)]
+    w_list = []
+    v_list, spk_list = [], []        
+
+    for e in range(par.epochs):
+                
+        'load input data'
+        if par.noise == True:
+            
+            if par.name == 'sequence': 
+                x,_ = funs.get_sequence(par,timing)
+            if par.name == 'multisequence': 
+                x = funs.get_multisequence(par,timing)
+    
+        # x_data = np.load(par.loaddir+'sequence_Dt_{}_Nseq_{}_Ndist_{}_rep_{}.npy'.format(
+        #                     par.Dt,par.N_seq,par.N_dist,np.random.randint(1000)))
+        
+        'initialize neuron state and solve dynamics (forward pass)'
+        network.state()
+        network, v, z = forward_nn_inhibition_PyTorch(par,network,x)
+        
+        """
+        optimization step: 
+            - computes loss over the whole duration of the forward pass
+            - optimize the model offline, if required
+        """
+        
+        EList = []
+        x_hatList = []
+        for n in range(par.nn):
+            x_hatList[n].append(torch.einsum("bt,j->btj",v,network.w))
+            EList[n].append(.5*loss(x_hatList[n],x))
+        
+        if par.optimizer != "online":
+            for n in range(par.nn):
+                optimizerList[n].zero_grad()
+            for n in range(par.nn):
+                EList[n].backward()
+            for n in range(par.nn):
+                optimizerList[n].step()
+        
+        'save output'
+#        loss_list.append(.item())
+#        w_list.append(neuron.w.detach().clone().numpy())
+#        v_list.append(v.detach().numpy())
+#        spk_list.append(z)
+#        
+        if e%50 == 0: 
+            print('epoch {} loss {}'.format(e,E.item()/par.T))
+    
+    return w_list, v_list, spk_list, loss_list
 '---------------------------------------------------------------------------'
 
 #%%
