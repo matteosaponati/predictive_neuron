@@ -20,10 +20,7 @@ from predictive_neuron import models, funs_train, funs
 if __name__ == '__main__':
     
     import argparse
-    parser = argparse.ArgumentParser(
-                    description="""
-                    """
-                    )
+    parser = argparse.ArgumentParser()
     
     'optimization'
     parser.add_argument('--batch', type=int, default=1) 
@@ -45,15 +42,14 @@ if __name__ == '__main__':
     parser.add_argument('--n_in', type=int, default=26)
     parser.add_argument('--delay', type=int, default=4)
     parser.add_argument('--Dt', type=int, default=2)
-    parser.add_argument('--noise', type=bool, default=False)
+    parser.add_argument('--noise', type=bool, default=True)
     parser.add_argument('--freq_noise', type=bool, default=True)
     parser.add_argument('--freq', type=float, default=10.) 
     parser.add_argument('--jitter_noise', type=bool, default=True) 
     parser.add_argument('--jitter', type=float, default=2)  
 
     'network model'
-    parser.add_argument('--is_rec', type=bool, default=True,
-                        help='set recurrent connections')
+    parser.add_argument('--is_rec', type=bool, default=True)
     parser.add_argument('--nn', type=int, default=8)
     parser.add_argument('--lateral', type=int, default=2)
     parser.add_argument('--dt', type=float, default= .05) 
@@ -61,12 +57,11 @@ if __name__ == '__main__':
     parser.add_argument('--v_th', type=float, default= 3.5)
     parser.add_argument('--tau_x', type=float, default= 2.)
    
-    parser.add_argument('--upload_data', type=bool, default=False)  
+    parser.add_argument('--upload_data', type=bool, default=True)  
     parser.add_argument('--load_dir', type=str, default='') 
     parser.add_argument('--save_dir', type=str, default='')
    
     par = parser.parse_args()
-    
     
     '-------------'
     
@@ -92,9 +87,9 @@ if __name__ == '__main__':
         x = funs.get_sequence_nn_selforg_NumPy(par,timing)
         w, v, spk = funs_train.train_nn_NumPy(par,network,x=x)
         
-    np.save(par.save_dir+'w_taum_{}_vth_{}_init_mean_{}_wrec_{}'.format(
-                            par.tau_m,par.v_th,par.init_mean,par.w_0rec),w)
-    np.save(par.save_dir+'v_taum_{}_vth_{}_init_mean_{}_wrec_{}'.format(
-                            par.tau_m,par.v_th,par.init_mean,par.w_0rec),v)
-    np.save(par.save_dir+'spk_taum_{}_vth_{}_init_mean_{}_wrec_{}'.format(
-                            par.tau_m,par.v_th,par.init_mean,par.w_0rec),spk)
+    np.save(par.save_dir+'w_taum_{}_vth_{}_eta_{}_init_mean_{}_wrec_{}'.format(
+                            par.tau_m,par.v_th,par.eta,par.init_mean,par.w_0rec),w)
+    np.save(par.save_dir+'v_taum_{}_vth_{}_eta_{}_init_mean_{}_wrec_{}'.format(
+                            par.tau_m,par.v_th,par.eta,par.init_mean,par.w_0rec),v)
+    np.save(par.save_dir+'spk_taum_{}_vth_{}_eta_{}_init_mean_{}_wrec_{}'.format(
+                            par.tau_m,par.v_th,par.eta,par.init_mean,par.w_0rec),spk)
