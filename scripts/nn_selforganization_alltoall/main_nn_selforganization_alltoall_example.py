@@ -35,11 +35,11 @@ par = types.SimpleNamespace()
 'set model'
 par.device = 'cpu'
 par.dt = .05
-par.eta = 1e-7
-par.tau_m = 30.
-par.v_th = 3.
+par.eta = 3e-6
+par.tau_m = 25.
+par.v_th = 2.9
 par.tau_x = 2.
-par.nn = 10
+par.nn = 8
 par.is_rec = True
 
 'set noise sources'
@@ -47,7 +47,8 @@ par.noise = True
 par.freq_noise = True
 par.freq = 10
 par.jitter_noise = True
-par.jitter = 1
+## or jitter = 1
+par.jitter = 2
 par.batch = 1
 par.upload_data = False
 
@@ -72,7 +73,7 @@ par.w_0rec = .0003
 'set training algorithm'
 par.online = True
 par.bound = 'none'
-par.epochs = 3000
+par.epochs = 25000
 
 'set noise sources'
 par.T = int((par.nn*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
@@ -109,14 +110,14 @@ w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
 
 #%%
 
-plt.imshow(w[-1])
+plt.imshow(w[800])
 plt.colorbar()
 
 #%%
 
 m=1
 for n in range(par.nn):
-    plt.eventplot(spk[n][-2],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
+    plt.eventplot(spk[n][2000],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
     m+=1
     
     for k in range(len(timing[n])+1):
