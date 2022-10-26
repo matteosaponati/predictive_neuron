@@ -35,9 +35,9 @@ par = types.SimpleNamespace()
 'set model'
 par.device = 'cpu'
 par.dt = .05
-par.eta = 9e-8
+par.eta = 8e-8
 par.tau_m = 25.
-par.v_th = 3.2
+par.v_th = 3.4
 par.tau_x = 2.
 par.nn = 10
 par.lateral = 2
@@ -48,7 +48,7 @@ par.noise = True
 par.freq_noise = True
 par.freq = 10
 par.jitter_noise = True
-par.jitter = 2
+par.jitter = 1
 par.batch = 1
 par.upload_data = False
 
@@ -73,7 +73,7 @@ par.w_0rec = .0003
 'set training algorithm'
 par.online = True
 par.bound = 'none'
-par.epochs = 25000
+par.epochs = 2000
 
 'set noise sources'
 par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
@@ -140,7 +140,7 @@ for k in range(len(timing[n])+1):
 plt.ylim(0,par.v_th)
 
 #%%
-plt.imshow(w[-1])
+plt.imshow(w[-100])
 plt.colorbar()
 
 
@@ -151,7 +151,7 @@ for k in range(par.epochs):
     w_plot[k,:,:] = w[k]
 
 #%%
-n = 8
+n = -2
 for k in range(par.n_in):
     plt.plot(w_plot[:,k,n],color='grey')
 plt.plot(w_plot[:,-2,n],color='purple')
