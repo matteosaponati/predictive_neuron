@@ -29,7 +29,7 @@ class MidpointNormalize(colors.Normalize):
 		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-from predictive_neuron import models, funs_train
+from predictive_neuron import models, funs_train, funs
 
 par = types.SimpleNamespace()
 

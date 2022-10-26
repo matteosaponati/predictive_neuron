@@ -38,14 +38,14 @@ par.name = 'rhythms'
 par.dt = .05
 par.eta = 1e-4
 par.tau_m = 10.
-par.v_th = 5.
+par.v_th = 4.
 par.tau_x = 2.
 
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 100
-par.N_seq = 50
-par.N_dist = 50
+par.N_seq = 100
+par.N_dist = 100
 par.N = par.N_seq+par.N_dist   
 par.cycles = 2
 spk_times = (np.linspace(par.Dt,par.Dt*par.cycles,par.cycles)/par.dt).astype(int)
@@ -55,12 +55,12 @@ for k in range(len(timing)):
 
 'set training algorithm'
 par.bound = 'soft'
-par.epochs = 100
+par.epochs = 600
 
 'set initialization'
 par.init = 'random'
-par.init_mean = 0.01
-par.init_a, par.init_b = 0, .02
+par.init_mean = 0.001
+par.init_a, par.init_b = 0, .002
 
 'set noise sources'
 par.noise = True
@@ -105,6 +105,7 @@ w,v,spk,loss = funs_train.train_NumPy(par,neuron,timing=timing)
 
 w_plot = np.vstack(w)
 plt.imshow(np.flipud(w_plot.T),aspect='auto')
+plt.xlabel('epochs')
 plt.colorbar()
 
 #%%
@@ -118,13 +119,15 @@ plt.xlabel('epochs')
 
 
 #%%
-
-n = 2
+n = 0
 plt.plot(np.arange(0,par.T*par.dt,par.dt),v[0])
 for k in range(len(timing[n])+1):
         plt.axvline(x=timing[n][0][k]*par.dt,color='k')
 # plt.xlim(0,20)
-plt.ylim(0,par.v_th)
+plt.ylabel('voltage ')
+plt.ylabel(r'time [ms]')
+plt.axhline(y=par.v_th,color='k',linestyle='dashed')
+plt.ylim(0,par.v_th+1)
 
 #%%
 
