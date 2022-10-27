@@ -283,7 +283,7 @@ def get_sequence_nn_selforg_NumPy(par,timing):
 '---------------------------------------------'
 'get sequences neural network with inhibition - PyTorch version'
 
-def get_nn_multisequence(par,timing):
+def get_multisequence_nn(par,timing):
     
     x_data  = []
     for n in range(par.nn):
