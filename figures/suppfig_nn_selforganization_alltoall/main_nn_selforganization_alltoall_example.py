@@ -62,7 +62,7 @@ for n in range(par.nn):
     for b in range(par.batch): 
         timing[n].append((spk_times+n*par.delay/par.dt).astype(int))
 
-'set initialization and training algorithm'
+'set initialization'
 par.init = 'fixed'
 par.init_mean = 0.06
 par.init_a, par.init_b = 0, .02
@@ -169,10 +169,10 @@ class NetworkClass_Forward():
 
 'a) train the network'
 
-# network = models.NetworkClass_SelfOrg_AlltoAll(par)
-# network = funs_train.initialization_weights_nn_AlltoAll(par,network)
+network = models.NetworkClass_SelfOrg_AlltoAll(par)
+network = funs_train.initialization_weights_nn_AlltoAll(par,network)
 
-# w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
+w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
 
 'b) get weights across epochs'
 w = np.load(os.getcwd()+'/Desktop/w_alltoall.npy')

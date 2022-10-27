@@ -29,12 +29,11 @@ class MidpointNormalize(colors.Normalize):
 		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-from predictive_neuron import models, funs_train
+from predictive_neuron import models, funs_train, funs
 
 par = types.SimpleNamespace()
 
 'set model'
-par.device = 'cpu'
 par.dt = .05
 par.eta = 5e-7
 par.tau_m = 20.
@@ -66,7 +65,6 @@ for n in range(par.nn):
 par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
         
 'set training algorithm'
-par.online = True
 par.bound = 'none'
 par.epochs = 300
 
@@ -76,22 +74,214 @@ par.init_mean = 0.02
 par.init_a, par.init_b = 0, .02
 par.w_0rec = .0003
 
-'---------------------------------------------'
 
-## MAKE DESCRIPTION HERE
 """
-there are three sources of noise for each epoch:
-    1. jitter of the spike times (random jitter between -par.jitter and +par.jitter)
-    2. random background firing following an homogenenous Poisson process with rate
-    distributione between 0 and par.freq 
-    3. another subset of N_dist pre-synaptic neurons that fire randomly according
-    to an homogenenous Poisson process with randomly distribuited rates between
-    0 and par.freq
+quantification of the number of neurons that needs to be activate such that
+the network can recall the whole sequence. We show that the number of neurons 
+required for the recall decreases consistently across epochs. 
+
+During each epoch we use *par.nn* pre-synaptic inputs 
 """
 
-'set model'
+def get_sequence_nn_subseqs(par,timing):
+    
+    'loop on neurons in the network'
+    x_data  = []
+    for n in range(par.nn):
+
+        'add background firing'         
+        if par.freq_noise == True:
+            prob = (np.random.randint(0,par.freq,par.n_in)*par.dt)/1000
+            x = np.zeros((par.n_in,par.T))
+            for nin in range(par.n_in): x[nin,:][np.random.rand(par.T)<prob[nin]] = 1        
+        else:
+            x = np.zeros((par.n_in,par.T))
+        
+        'span across neurons in the network'
+        if n in range(par.subseq):
+        
+            'create sequence + jitter'
+            if par.jitter_noise == True:
+                timing_err = np.array(timing[n]) \
+                              +  (np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt).astype(int)
+                x[range(par.n_in),timing_err] = 1
+            else: x[range(par.n_in),timing[n]] = 1
+        
+        'synaptic time constant'
+        for nin in range(par.n_in):
+            x[nin,:] = np.convolve(x[nin,:],
+                          np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]   
+            
+        'add to total input'
+        x_data.append(x)
+
+    return np.stack(x_data,axis=2)
+
+"""
+Next, we use the set of synaptic inputs which the network learned when we showed
+the whole input sequence. Consequently, we define a novel NetworkClass where the 
+forward pass does not contain the update step for the synaptic weights. For each
+training, we assign to the network the set of synaptic weights learned 
+at the respective epoch.
+"""
+
+class NetworkClass_Forward():
+    """
+    NETWORK MODEL
+    - get the input vector at the current timestep
+    - compute the current prediction error
+    - update the recursive part of the gradient and the membrane potential
+    - thresholding nonlinearity and evaluation of output spike
+    inputs:
+        par: model parameters
+    """
+    
+    def __init__(self,par):
+        
+        self.par = par  
+        self.alpha = (1-self.par.dt/self.par.tau_m)  
+        self.beta = (1-self.par.dt/self.par.tau_x)              
+        self.w = np.zeros((self.par.n_in+self.par.nn,self.par.nn))
+        
+    def state(self):
+        """initialization of network state"""
+
+        self.v = np.zeros(self.par.nn)
+        self.z = np.zeros(self.par.nn)
+        self.z_out = np.zeros(self.par.nn)
+
+    def __call__(self,x):
+        
+        'create total input'
+        x_tot = np.zeros((self.par.n_in+self.par.nn,self.par.nn))
+        self.z_out = self.beta*self.z_out + self.z
+        for n in range(self.par.nn): 
+            
+            x_tot[:,n] = np.concatenate((x[:,n],np.append(np.delete(self.z_out,n,axis=0),[0],axis=0)),axis=0)  
+                
+        'update membrane voltage (eq 1)'
+        self.v = self.alpha*self.v + np.sum(x_tot*self.w,axis=0) \
+                 - self.par.v_th*self.z
+        self.z = np.zeros(self.par.nn)
+        self.z[self.v-self.par.v_th>0] = 1
+        
+'--------------------'
+
+'a) train the network'
+
 network = models.NetworkClass_SelfOrg_NumPy(par)
 network = funs_train.initialization_weights_nn_NumPy(par,network)
 
-'training'
 w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
+
+'b) get weights across epochs'
+w = np.load(os.getcwd()+'/Desktop/w_nearest.npy')
+
+'set model with forward pass only'
+network = NetworkClass_Forward(par)
+
+'---------------------------------------------'
+'plots'
+
+'Panel b'
+
+'before'
+par.subseq, par.epochs = 1, 1
+x = get_sequence_nn_subseqs(par,timing)
+network.w = w[0,:]
+
+_,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
+
+fig = plt.figure(figsize=(5,3), dpi=300)
+m=1
+for n in range(par.nn):
+    plt.eventplot(spk[n][0],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
+    m+=1
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.ylim(1,par.nn+1)
+plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
+plt.xlabel('time [ms]')
+plt.ylabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/spk_before.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_before.pdf',format='pdf', dpi=300)
+plt.close('all') 
+ 
+'learning'
+x = funs.get_sequence_nn_selforg_NumPy(par,timing)
+network.w = w[10,:]
+
+_,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
+
+fig = plt.figure(figsize=(5,3), dpi=300)
+m=1
+for n in range(par.nn):
+    plt.eventplot(spk[n][0],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
+    m+=1
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.ylim(1,par.nn+1)
+plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
+plt.xlabel('time [ms]')
+plt.ylabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/spk_learning.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_learning.pdf',format='pdf', dpi=300)
+plt.close('all') 
+
+'after'
+par.subseq, par.epochs = 2, 1
+x = get_sequence_nn_subseqs(par,timing)
+network.w = w[-1,:]
+
+_,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
+
+fig = plt.figure(figsize=(5,3), dpi=300)
+m=1
+for n in range(par.nn):
+    plt.eventplot(spk[n][-1],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
+    m+=1
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.ylim(1,par.nn+1)
+plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
+plt.xlabel('time [ms]')
+plt.ylabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/spk_after.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_after.pdf',format='pdf', dpi=300)
+plt.close('all') 
+
+'after spontaneous'
+par.subseq, par.epochs = 2, 1
+x = get_sequence_nn_subseqs(par,timing)
+network.w = w[-1,:]
+
+_,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
+
+fig = plt.figure(figsize=(5,3), dpi=300)
+m=1
+for n in range(par.nn):
+    plt.eventplot(spk[n][-1],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
+    m+=1
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.ylim(1,par.nn+1)
+plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
+plt.xlabel('time [ms]')
+plt.ylabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/spk_after_spontaneous.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_after_spontaneous.pdf',format='pdf', dpi=300)
+plt.close('all') 
+
+'Panel c'
+hex_list = ['#33A1C9','#FFFAF0','#7D26CD']
+fig = plt.figure(figsize=(6,6), dpi=300)    
+divnorm = colors.TwoSlopeNorm(vmin=w[-1,:].min(),vcenter=0, vmax=w[-1,:].max())
+plt.imshow(np.flipud(w[-1,:]),cmap=funs.get_continuous_cmap(hex_list), norm=divnorm,aspect='auto')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.colorbar()
+plt.title(r'$\vec{w}$')
+plt.ylabel(r'inputs')
+plt.xlabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/w_nn.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/w_nn.pdf',format='pdf', dpi=300)
+plt.close('all')

@@ -140,7 +140,7 @@ for k in range(len(timing[n])+1):
 plt.ylim(0,par.v_th)
 
 #%%
-plt.imshow(w[-100])
+plt.imshow(w[-1])
 plt.colorbar()
 
 

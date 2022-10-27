@@ -15,6 +15,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -33,13 +34,12 @@ from predictive_neuron import funs_train
 par = types.SimpleNamespace()
 
 'set model'
-par.device = 'cpu'
 par.dt = .05
-par.eta = 1e-5
-par.tau_m = 15.
-par.v_th = 3.5
+par.eta = 5e-7
+par.tau_m = 20.
+par.v_th = 2.7
 par.tau_x = 2.
-par.nn = 8
+par.nn = 10
 par.lateral = 2
 par.is_rec = True
 
@@ -48,20 +48,20 @@ par.noise = True
 par.freq_noise = True
 par.freq = 10
 par.jitter_noise = True
-par.jitter = 2
+par.jitter = 1
 par.batch = 1
+par.upload_data = False
 
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.n_in = 26
+par.n_in = 2
 par.delay = 4
 timing = [[] for n in range(par.nn)]
 spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
 for n in range(par.nn): 
-    for b in range(par.batch): timing[n].append((spk_times+n*par.delay/par.dt).astype(int))
-
-'set total lenght of the simulation'
+    for b in range(par.batch): 
+        timing[n].append((spk_times+n*par.delay/par.dt).astype(int))
 par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
 
 '---------------------------------------------'
@@ -74,7 +74,7 @@ required for the recall decreases consistently across epochs.
 During each epoch we use *par.nn* pre-synaptic inputs 
 """
 
-def get_sequence_nn_selforg_NumPy(par,timing):
+def get_sequence_nn_subseqs(par,timing):
     
     'loop on neurons in the network'
     x_data  = []
@@ -89,7 +89,7 @@ def get_sequence_nn_selforg_NumPy(par,timing):
             x = np.zeros((par.n_in,par.T))
         
         'span across neurons in the network'
-        if n in par.subseq:
+        if n in range(par.subseq):
         
             'create sequence + jitter'
             if par.jitter_noise == True:
@@ -116,7 +116,7 @@ training, we assign to the network the set of synaptic weights learned
 at the respective epoch.
 """
 
-class NetworkClass_SelfOrg_NumPy():
+class NetworkClass_Forward():
     """
     NETWORK MODEL
     - get the input vector at the current timestep
@@ -171,11 +171,12 @@ the number of inputs in the pre-synaptic sequence until the network reaches
 a full recall. 
 """
 
-'load synaptic weights'
-w = np.load(par.loaddir+'w_recall.npy')
+'get weights across epochs'
+w = np.load(os.getcwd()+'/Desktop/w_nearest.npy')
 
 'count of the number of neurons required for full recall, across epochs'
-n_required = np.zeros(w.shape[0])
+rep = 100
+n_required = np.zeros((w.shape[0],rep))
 
 count = 0
 for e in range(w.shape[0]):
@@ -189,136 +190,54 @@ for e in range(w.shape[0]):
 
         'span on the possible subsequences'
         par.subseq = [x for x in range(subseq)]
-        
-        'define sequence recall'
-        timing = [[] for n in range(par.nn)]
-        spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
-        for n in range(par.nn): 
-            for b in range(par.batch): timing[n].append(spk_times+n*par.delay/par.dt)
     
-        'create input'
-        x_subseq = get_sequence_nn_selforg_NumPy(par,timing)
     
         'set model'
-        network = NetworkClass_SelfOrg_NumPy(par)
+        network = NetworkClass_Forward(par)
         network = w[e,:].copy()
+        
+        for k in range(rep):
+            
+            'create input'
+            x_subseq = get_sequence_nn_subseqs(par,timing)
                 
-        'training'
-        w,v,spk = funs_train.train_nn_NumPy(par,network,x=x_subseq)
+            'training'
+            w,v,spk = funs_train.train_nn_NumPy(par,network,x=x_subseq)
         
-        '''
-        span the spiking activity of every neuron in the network
-        count if the neuron has been active during the simulaion
-        '''
-        count = 0
-        for n in range(par.nn):
-            if spk[n] != []: count+=1
-        
-        '''
-        check if every neuron in the network was active during the simulation
-        if true, the current value of *subseq* represent the amount of input
-        needed for the network to recall the whole sequence.
-        if false, the number of input presented to the network is not sufficient
-        to trigger the recall of the whole sequence.
-        '''
-        print('total neurons triggered: '+str(count))
-        if count == par.nn:
-            n_required[e] = subseq
-            break
-        else:
-            continue
-
+            '''
+            span the spiking activity of every neuron in the network
+            count if the neuron has been active during the simulaion
+            '''
+            count = 0
+            for n in range(par.nn):
+                if spk[n] != []: count+=1
+            
+            '''
+            check if every neuron in the network was active during the simulation
+            if true, the current value of *subseq* represent the amount of input
+            needed for the network to recall the whole sequence.
+            if false, the number of input presented to the network is not sufficient
+            to trigger the recall of the whole sequence.
+            '''
+            print('total neurons triggered: '+str(count))
+            if count == par.nn:
+                n_required[e,k] = subseq
+                break
+            else:
+                continue
 
 '---------------------------------------'
 'plot'
 
 fig = plt.figure(figsize=(5,6), dpi=300)
-plt.plot(n_required,linewidth=2,color='purple')
+plt.plot(n_required.mean(axis=1),linewidth=2,color='purple')
+plt.fill_between(range(w.shape[0]),n_required.mean(axis=1)+n_required.std(axis=1),
+                 n_required.mean(axis=1)-n_required.std(axis=1),
+                 color='purple',alpha=.3)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel('epochs')
 plt.ylabel(r'# neurons for replay')
 plt.ylim(0,9)
-plt.savefig(par.savedir+'n_needed.png',format='png', dpi=300)
-plt.savefig(par.savedir+'n_needed.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/n_needed.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/n_needed.pdf',format='pdf', dpi=300)
 plt.close('all')           
-
-
-#
-#
-#'---------------------------------------'
-#import torch.nn.functional as F
-#def get_subseqs(par,timing):            
-#    x_data  = []
-#    
-#    for n in range(par.nn):
-#
-#        x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
-#        if n in par.subseq:
-#         x[b,timing[n][b],range(par.n_in)] = 1
-#        
-#        'filtering'
-#        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
-#                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
-#        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
-#                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
-#            
-#        'add to total input'
-#        x_data.append(x.permute(0,2,1))
-#
-#    return torch.stack(x_data,dim=3)
-#
-#def forward(par,network,x_data):
-#    z = [[[] for b in range(par.batch)] for n in range(par.nn)]
-#    v = []
-#    for t in range(par.T):     
-#        'append voltage state'
-#        v.append(network.v.clone().detach().numpy())
-#        'forward pass'
-#        network(x_data[:,t]) 
-#        'append output spikes'
-#        for n in range(par.nn):
-#            for b in range(par.batch):
-#                if network.z[b,n] != 0: z[n][b].append(t*par.dt)          
-#        
-#    return network, np.stack(v,axis=1), z
-#'---------------------------------------'
-#
-#'---------------------------------------'
-#'create parameter structure'
-#par = types.SimpleNamespace()
-#'architecture'
-#par.n_in = 26
-#par.nn = 8
-#par.batch = 1
-#par.lateral = 2
-#par.device = 'cpu'
-#par.dtype = torch.float
-#'model parameters'
-#par.dt = .05
-#par.tau_m = 15.
-#par.v_th = 3.5
-#par.tau_x = 2.
-#par.is_rec = True
-#par.online = True
-#'input'
-#par.Dt=2
-#par.delay = 4
-#par.jitter_noise = True
-#par.jitter = 2
-#par.fr_noise = True
-#par.freq = .01
-#par.w_0 = .02
-#par.T = int((par.n_in*par.delay+(par.n_in*par.Dt)+80)/par.dt)
-#
-#par.loaddir = ''
-#par.savedir = '/Users/saponatim/Desktop/'
-#
-#'---------------------------------------'
-#'get results'
-#z_out = np.load(par.loaddir+'spk_nin_{}_nn_{}_delay_{}_Dt_{}_tau_{}_vth_{}_w0_{}.npy'.format(
-#                                    par.n_in,par.nn,par.delay,par.Dt,
-#                                    par.tau_m,par.v_th,par.w_0),allow_pickle=True).tolist()
-#w = np.load(par.loaddir+'w_nin_{}_nn_{}_delay_{}_Dt_{}_tau_{}_vth_{}_w0_{}.npy'.format(
-#                                    par.n_in,par.nn,par.delay,par.Dt,par.tau_m,par.v_th,par.w_0))
-#
-#'---------------------------------------'
