@@ -14,10 +14,10 @@ Author:
 ----------------------------------------------
 """
 
-import torch
 import numpy as np
+import torch
     
-from predictive_neuron import models, funs, funs_train
+from predictive_neuron import models, funs, funs_train_inhibition
 
 
 if __name__ == '__main__':
@@ -35,14 +35,14 @@ if __name__ == '__main__':
                         choices=['None','hard','soft'],default='None',
                         help='set hard lower bound for parameters')
     parser.add_argument('--init',type=str, 
-                        choices=['classic','random','fixed'],default='fixed',
+                        choices=['random','fixed'],default='random',
                         help='type of weights initialization')
     
     parser.add_argument('--init_mean',type=float, default=0.1)
     parser.add_argument('--init_a',type=float, default=0.)
     parser.add_argument('--init_b',type=float, default=.2)
 
-    parser.add_argument('--epochs', type=int, default=400)
+    parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--seed', type=int, default=1992)
     parser.add_argument('--batch', type=int, default=10)
     parser.add_argument('--device', type=str, default="cpu")
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     'network model'
     parser.add_argument('--is_rec', type=bool, default=True)
     parser.add_argument('--nn', type=int, default=10)
-    parser.add_argument('--w_0rec', type=float, default=-.05) 
+    parser.add_argument('--w0_rec', type=float, default=-.05) 
     parser.add_argument('--dt', type=float, default= .05) 
     parser.add_argument('--tau_m', type=float, default= 10.) 
     parser.add_argument('--v_th', type=float, default= 2.)
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('--tau_x', type=float, default= 2.)
     parser.add_argument('--dtype', type=str, default=torch.float) 
     
-    parser.add_argument('--upload_data', type=bool, default=True)  
+    parser.add_argument('--upload_data', type=bool, default=False)  
     parser.add_argument('--load_dir', type=str, default='') 
     parser.add_argument('--save_dir', type=str, default='')
     
@@ -93,12 +93,24 @@ if __name__ == '__main__':
         for b in range(par.batch): timing[n].append(spk_times[b])
         
     'set model'
-    neuron = models.NetworkClass(par)
-    neuron = funs_train.initialize_weights_nn_inhibition_PyTorch(par,neuron)
+    network = models.NetworkClass(par)
+    network = funs_train_inhibition.initialize_weights_nn_PyTorch(par,network)
     
-    if par.noise == False:
-        x_data, onset = funs.get_sequence(par,timing)
-        w,v,spk,loss = funs_train.train_PyTorch(par,neuron,x=x_data)
-    
-    else: 
-        w,v,spk,loss = funs_train.train_PyTorch(par,neuron,timing=timing)
+    print(par.load_dir)
+    if par.noise == True:
+        
+        if par.upload_data == True: 
+            w, v, spk = funs_train_inhibition.train_nn_PyTorch(par,network)
+        else: 
+            w, v, spk = funs_train_inhibition.train_nn_PyTorch(par,network,timing=timing)
+
+    else:
+        x = funs.funs.get_multisequence_nn(par,timing)
+        w, v, spk = funs_train_inhibition.train_nn_PyTorch(par,network,x=x)
+        
+    np.save(par.save_dir+'w_taum_{}_vth_{}_eta_{}_init_mean_{}_wrec_{}'.format(
+                            par.tau_m,par.v_th,par.eta,par.init_mean,par.w_0rec),w)
+    np.save(par.save_dir+'v_taum_{}_vth_{}_eta_{}_init_mean_{}_wrec_{}'.format(
+                            par.tau_m,par.v_th,par.eta,par.init_mean,par.w_0rec),v)
+    np.save(par.save_dir+'spk_taum_{}_vth_{}_eta_{}_init_mean_{}_wrec_{}'.format(
+                            par.tau_m,par.v_th,par.eta,par.init_mean,par.w_0rec),spk)
