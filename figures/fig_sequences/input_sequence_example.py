@@ -15,6 +15,7 @@ Author:
 """
 
 import types
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -58,12 +59,6 @@ for k in range(par.N):
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel('time [ms]')
 plt.ylabel('inputs')
-plt.savefig(savedir+'sequence_example.png',format='png', dpi=300)
-# plt.savefig(savedir+'sequence_example.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/sequence_example.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/sequence_example.pdf',format='pdf', dpi=300)
 plt.close('all') 
-
-'create firing rate'
-par.tau_m = 10
-
-
-
