@@ -169,10 +169,10 @@ class NetworkClass_Forward():
 
 'a) train the network'
 
-network = models.NetworkClass_SelfOrg_AlltoAll(par)
-network = funs_train.initialization_weights_nn_AlltoAll(par,network)
+#network = models.NetworkClass_SelfOrg_AlltoAll(par)
+#network = funs_train.initialization_weights_nn_AlltoAll(par,network)
 
-w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
+#w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
 
 'b) get weights across epochs'
 w = np.load(os.getcwd()+'/Desktop/w_alltoall.npy')
