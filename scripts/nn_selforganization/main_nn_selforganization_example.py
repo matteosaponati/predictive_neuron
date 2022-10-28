@@ -3,7 +3,7 @@
 Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
-"main_nn_selforg_example.py":
+"main_nn_selforganization_example.py":
 train the neural network model with learnable recurrent connections (Figure 3)
 
 Author:
@@ -15,6 +15,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -28,40 +29,38 @@ class MidpointNormalize(colors.Normalize):
 		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-from predictive_neuron import models, funs_train, funs
+from predictive_neuron import funs_train, funs
 
 par = types.SimpleNamespace()
 
 'set model'
-par.device = 'cpu'
 par.dt = .05
-par.eta = 6e-8
+par.eta = 8e-7
 par.tau_m = 25.
-par.v_th = 3.4
-par.tau_x = 2.
+par.v_th = 3.
+par.tau_x = 2
 par.nn = 10
 par.lateral = 2
 par.is_rec = True
 
 'set noise sources'
-par.noise = True
+par.noise = False
 par.freq_noise = True
 par.freq = 10
 par.jitter_noise = True
-par.jitter = 1
+par.jitter = 2
 par.batch = 1
 par.upload_data = False
 
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.n_in = 10
+par.n_in = 8
 par.delay = 4
 timing = [[] for n in range(par.nn)]
 spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
 for n in range(par.nn): 
     for b in range(par.batch): 
-        # spk_times = (np.cumsum(np.random.randint(0,par.Dt,par.n_in))/par.dt).astype(int)
         timing[n].append((spk_times+n*par.delay/par.dt).astype(int))
 
 'set initialization and training algorithm'
@@ -71,127 +70,11 @@ par.init_a, par.init_b = 0, .02
 par.w_0rec = .0003
 
 'set training algorithm'
-par.online = True
 par.bound = 'none'
-par.epochs = 3000
+par.epochs = 500
 
 'set noise sources'
 par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
-
-'---------------------------------------------'
-
-"""
-there are three sources of noise for each epoch:
-    1. jitter of the spike times (random jitter between -par.jitter and +par.jitter)
-    2. random background firing following an homogenenous Poisson process with rate
-    distributione between 0 and par.freq 
-    3. another subset of N_dist pre-synaptic neurons that fire randomly according
-    to an homogenenous Poisson process with randomly distribuited rates between
-    0 and par.freq
-"""
-#%%
-x = funs.get_sequence_nn_selforg_NumPy(par,timing)
-plt.imshow(x[:,:,-1],aspect='auto')
-
-#%%
-
-'set model'
-network = models.NetworkClass_SelfOrg_NumPy(par)
-network = funs_train.initialization_weights_nn_NumPy(par,network)
-
-#%%
-# import scipy.stats as stats
-# network.w = stats.truncnorm((par.init_a-par.init_mean)/(1/np.sqrt(par.n_in+par.lateral)), 
-#                               (par.init_b-par.init_mean)/(1/np.sqrt(par.n_in+par.lateral)), 
-#                               loc=par.init_mean, scale=1/np.sqrt(par.n_in+par.lateral)).rvs((par.n_in+par.lateral,par.nn))
-# # network.w[:par.n_in,] = par.w_0rec
- 
-#%%
-
-'training'
-# x = funs.get_sequence_nn_selforg_NumPy(par,timing)
-        
-# w,v,spk = funs_train.train_nn_NumPy(par,network,x=x)
-
-
-w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
-# 
-
-#%%
-
-m=1
-for n in range(par.nn):
-    plt.eventplot(spk[n][-1],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
-    m+=1
-    
-plt.axvline(x=timing[0][0][0]*par.dt,color='k')
-plt.axvline(x=timing[-1][0][-1]*par.dt,color='k')
-    # for k in range(len(timing[n][0])):
-    #     plt.axvline(x=timing[n][0][k]*par.dt,color='k')
-plt.ylim(1,par.nn)
-plt.xlim(0,par.T*par.dt)
-plt.xlabel('time [ms]')
-#%%
-n = 0
-plt.plot(np.arange(0,par.T*par.dt,par.dt),v[-1][n,:])
-for k in range(len(timing[n])+1):
-        plt.axvline(x=timing[n][0][k]*par.dt,color='k')
-# plt.xlim(0,20)
-plt.ylim(0,par.v_th)
-
-#%%
-plt.imshow(w[-1])
-plt.colorbar()
-
-
-#%%
-w_plot = np.zeros((par.epochs,par.n_in+2,par.nn))
-for k in range(par.epochs):
-    
-    w_plot[k,:,:] = w[k]
-
-#%%
-n = -7
-for k in range(par.n_in):
-    plt.plot(w_plot[:,k,n],color='grey')
-plt.plot(w_plot[:,-2,n],color='purple')
-plt.plot(w_plot[:,-1,n],color='navy')#%%
-#%%
-
-for n in range(par.nn):
-    plt.plot(w_plot[:,-2,n],label='neuron {}'.format(n))
-# plt.legend()
-
-#%%
-
-for n in range(par.nn):
-    plt.plot(w_plot[:,-1,n],label='neuron {}'.format(n))
-# plt.legend()
-# plt.plot(v[-10][0,:])
-
-
-#%%
-
-
-for n in range(par.nn):
-    plt.plot(w_plot[:,0,n],label='neuron {}'.format(n))
-# plt.legend()
-#%%
-
-w = np.vstack(w)
-# fig = plt.figure(figsize=(7,6), dpi=300)
-plt.title(r'$\vec{w}/\vec{w}_0$')
-plt.ylabel(r'inputs')
-plt.xlabel(r'epochs')
-plt.xlim(0,par.epochs)
-plt.imshow(w.T,aspect='auto',cmap='coolwarm')#,norm=MidpointNormalize(midpoint=1))
-plt.colorbar()
-
-
-
-#%%
-'---------------------------------------------'
-'plots'
 
 """
 quantification of the number of neurons that needs to be activate such that
@@ -201,7 +84,7 @@ required for the recall decreases consistently across epochs.
 During each epoch we use *par.nn* pre-synaptic inputs 
 """
 
-def get_sequence_nn_selforg_NumPy(par,timing):
+def get_sequence_nn_subseqs(par,timing):
     
     'loop on neurons in the network'
     x_data  = []
@@ -216,7 +99,7 @@ def get_sequence_nn_selforg_NumPy(par,timing):
             x = np.zeros((par.n_in,par.T))
         
         'span across neurons in the network'
-        if n in par.subseq:
+        if n in range(par.subseq):
         
             'create sequence + jitter'
             if par.jitter_noise == True:
@@ -243,7 +126,7 @@ training, we assign to the network the set of synaptic weights learned
 at the respective epoch.
 """
 
-class NetworkClass_SelfOrg_NumPy():
+class NetworkClass_Forward():
     """
     NETWORK MODEL
     - get the input vector at the current timestep
@@ -267,7 +150,7 @@ class NetworkClass_SelfOrg_NumPy():
         self.v = np.zeros(self.par.nn)
         self.z = np.zeros(self.par.nn)
         self.z_out = np.zeros(self.par.nn)
-
+        
     def __call__(self,x):
         
         'create total input'
@@ -285,116 +168,129 @@ class NetworkClass_SelfOrg_NumPy():
         self.v = self.alpha*self.v + np.sum(x_tot*self.w,axis=0) \
                  - self.par.v_th*self.z
         self.z = np.zeros(self.par.nn)
-        self.z[self.v-self.par.v_th>0] = 1
+        self.z[self.v-self.par.v_th>0] = 1  
 
+'---------------------------------------------'
 
+"""
+write description here
+"""
 
+'a) train the network'
 
-#%%
-par.subseq = [0,1,2]
+# network = models.NetworkClass_SelfOrg_NumPy(par)
+# network = funs_train.initialization_weights_nn_NumPy(par,network)
 
-'create input'
-x_subseq = get_sequence_nn_selforg_NumPy(par,timing)
+# w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
 
-'set model'
-network = NetworkClass_SelfOrg_NumPy(par)
-network.w= w[-1].copy()
+'b) get weights across epochs'
+w = np.load(os.getcwd()+'/w_nn.npy')
 
-# plt.imshow(x_subseq[:,:,2],aspect='auto')
+'set model with forward pass only'
+network = NetworkClass_Forward(par)
 
-network.state()
-network, v, z = funs_train.forward_nn_NumPy(par,network,x_subseq)
-
-m=1
-for n in range(par.nn):
-    plt.eventplot(z[n],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
-    m+=1
-plt.ylim(1,par.nn)
-plt.xlim(0,par.T*par.dt)
-plt.xlabel('time [ms]')
-#%%
-
-
-#%%
-'training'
-w,v,spk = funs_train.train_nn_NumPy(par,network,x=x_subseq)
-
-
-#%%
+'---------------------------------------------'
+'plots'
 
 'Panel b'
 
 'before'
-# fig = plt.figure(figsize=(5,3), dpi=300)
+par.subseq, par.epochs = 2, 1
+x = get_sequence_nn_subseqs(par,timing)
+network.w = w[0,:]
+
+_,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
+
+fig = plt.figure(figsize=(5,3), dpi=300)
 m=1
 for n in range(par.nn):
     plt.eventplot(spk[n][0],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
     m+=1
-# fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.ylim(1,par.nn)
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.ylim(1,par.nn+1)
 plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
 plt.xlabel('time [ms]')
-plt.ylabel(r'$N_{nn}$')
-# plt.savefig(par.savedir+'spk_before.png',format='png', dpi=300)
-# plt.savefig(par.savedir+'spk_before.pdf',format='pdf', dpi=300)
-# plt.close('all') 
+plt.ylabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/spk_before.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_before.pdf',format='pdf', dpi=300)
+plt.close('all') 
  
-#%%
 'learning'
+x = funs.get_sequence_nn_selforg_NumPy(par,timing)
+network.w = w[30,:]
+
+_,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
+
 fig = plt.figure(figsize=(5,3), dpi=300)
 m=1
 for n in range(par.nn):
-    plt.eventplot(spk[n][10],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
+    plt.eventplot(spk[n][0],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
     m+=1
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.ylim(1,par.nn)
+plt.ylim(1,par.nn+1)
 plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
 plt.xlabel('time [ms]')
-plt.ylabel(r'$N_{nn}$')
-plt.savefig(par.savedir+'spk_learning.png',format='png', dpi=300)
-plt.savefig(par.savedir+'spk_learning.pdf',format='pdf', dpi=300)
+plt.ylabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/spk_learning.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_learning.pdf',format='pdf', dpi=300)
 plt.close('all') 
 
 'after'
+par.subseq, par.epochs = 2, 1
+x = get_sequence_nn_subseqs(par,timing)
+network.w = w[-1,:]
+
+_,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
+
 fig = plt.figure(figsize=(5,3), dpi=300)
 m=1
 for n in range(par.nn):
     plt.eventplot(spk[n][-1],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
     m+=1
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.ylim(1,par.nn)
+plt.ylim(1,par.nn+1)
 plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
 plt.xlabel('time [ms]')
-plt.ylabel(r'$N_{nn}$')
-plt.savefig(par.savedir+'spk_after.png',format='png', dpi=300)
-plt.savefig(par.savedir+'spk_after.pdf',format='pdf', dpi=300)
+plt.ylabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/spk_after.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_after.pdf',format='pdf', dpi=300)
 plt.close('all') 
 
-'Panel c'   
+'after spontaneous'
+par.subseq, par.epochs = 2, 1
+x = get_sequence_nn_subseqs(par,timing)
+network.w = w[-1,:]
+
+_,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
+
+fig = plt.figure(figsize=(5,3), dpi=300)
+m=1
+for n in range(par.nn):
+    plt.eventplot(spk[n][-1],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
+    m+=1
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.ylim(1,par.nn+1)
+plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
+plt.xlabel('time [ms]')
+plt.ylabel(r'neurons')
+plt.savefig(os.getcwd()+'/plots/spk_after_spontaneous.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_after_spontaneous.pdf',format='pdf', dpi=300)
+plt.close('all') 
+
+'Panel c'
 hex_list = ['#33A1C9','#FFFAF0','#7D26CD']
 fig = plt.figure(figsize=(6,6), dpi=300)    
-divnorm = colors.DivergingNorm(vmin=w[-1].min(),vcenter=0, vmax=w[-1].min())
-plt.imshow(w[-1],cmap=funs.get_continuous_cmap(hex_list), norm=divnorm,aspect='auto')
+divnorm = colors.TwoSlopeNorm(vmin=w[-1,:].min(),vcenter=0, vmax=w[-1,:].max())
+plt.imshow(w[-1,:],cmap=funs.get_continuous_cmap(hex_list), norm=divnorm,aspect='auto')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.colorbar()
+plt.title(r'$\vec{w}$')
 plt.ylabel(r'inputs')
 plt.xlabel(r'neurons')
-plt.savefig('w_nn.png',format='png', dpi=300)
-plt.savefig('w_nn.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/w_nn.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/w_nn.pdf',format='pdf', dpi=300)
 plt.close('all')
-
-'Panel d'
-total_duration = np.zeros(par.epochs)
-for e in range(par.epochs):
-    if spk[-1][e] != [] and spk[0][e] != []:
-        total_duration[e] = spk[-1][e][-1] - spk[0][e][0]
-    else: total_duration[e-1]
-fig = plt.figure(figsize=(6,6), dpi=300)    
-plt.plot(total_duration,color='purple',linewidth=2)
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.colorbar()
-plt.ylabel(r'$\Delta t$ [ms]')
-plt.xlabel(r'epochs')
-plt.savefig('total_duration.png',format='png', dpi=300)
-plt.savefig('total_duration.pdf',format='pdf', dpi=300)
-plt.close('all')    
