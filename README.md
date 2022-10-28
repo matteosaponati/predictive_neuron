@@ -10,7 +10,7 @@ https://www.biorxiv.org/content/10.1101/2021.10.31.466667v1.full
 
 -------------------------
 
-![](./imgs/model_description.png)
+![](./imgs/fig_model.png)
 
 -------------------------
 
