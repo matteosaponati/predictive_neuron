@@ -35,33 +35,37 @@ par = types.SimpleNamespace()
 
 'set model'
 par.dt = .05
-par.eta = 5e-7
-par.tau_m = 20.
-par.v_th = 2.7
-par.tau_x = 2.
+par.eta = 8e-7
+par.tau_m = 25.
+par.v_th = 3.
+par.tau_x = 2
 par.nn = 10
 par.lateral = 2
 par.is_rec = True
 
 'set noise sources'
-par.noise = True
+par.noise = False
 par.freq_noise = True
 par.freq = 10
 par.jitter_noise = True
-par.jitter = 1
+par.jitter = 2
 par.batch = 1
 par.upload_data = False
 
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.n_in = 2
+par.n_in = 8
 par.delay = 4
 timing = [[] for n in range(par.nn)]
 spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
 for n in range(par.nn): 
     for b in range(par.batch): 
         timing[n].append((spk_times+n*par.delay/par.dt).astype(int))
+
+par.epochs = 1
+
+'set noise sources'
 par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
 
 '---------------------------------------------'
@@ -140,7 +144,7 @@ class NetworkClass_Forward():
         self.v = np.zeros(self.par.nn)
         self.z = np.zeros(self.par.nn)
         self.z_out = np.zeros(self.par.nn)
-
+        
     def __call__(self,x):
         
         'create total input'
@@ -158,51 +162,35 @@ class NetworkClass_Forward():
         self.v = self.alpha*self.v + np.sum(x_tot*self.w,axis=0) \
                  - self.par.v_th*self.z
         self.z = np.zeros(self.par.nn)
-        self.z[self.v-self.par.v_th>0] = 1
+        self.z[self.v-self.par.v_th>0] = 1  
 
 
-"""
-Next, we define a novel NetworkClass where the forward pass does not contain 
-the update step for the synaptic weights. For each training epoch, we assign 
-to the network the set of synaptic weights learned at the respective epoch.
-We then show to the network only the first input in the pre-synaptic sequence 
-and we check how many neurons in the network were active. We gradually increase
-the number of inputs in the pre-synaptic sequence until the network reaches
-a full recall. 
-"""
 
 'get weights across epochs'
-w = np.load(os.getcwd()+'/Desktop/w_nearest.npy')
+w = np.load(os.getcwd()+'/w_nn.npy')
 
 'count of the number of neurons required for full recall, across epochs'
+'set number of repetitions for different noise realizations'
 rep = 100
 n_required = np.zeros((w.shape[0],rep))
 
 count = 0
 for e in range(w.shape[0]):
     
-    print('epoch '+str(e))
-    
-    'run across neurons in the network'
-    for subseq in range(1,par.nn+1):
+    for k in range(rep):
+            
+        'run across neurons in the network'
+        for par.subseq in range(1,par.nn+1):
         
-        print('# neurons: '+str(subseq))
-
-        'span on the possible subsequences'
-        par.subseq = [x for x in range(subseq)]
-    
-    
-        'set model'
-        network = NetworkClass_Forward(par)
-        network = w[e,:].copy()
-        
-        for k in range(rep):
+            'set model'
+            network = NetworkClass_Forward(par)
+            network.w = w[e,:].copy()
             
             'create input'
             x_subseq = get_sequence_nn_subseqs(par,timing)
                 
             'training'
-            w,v,spk = funs_train.train_nn_NumPy(par,network,x=x_subseq)
+            _,_,spk = funs_train.train_nn_NumPy(par,network,x=x_subseq)
         
             '''
             span the spiking activity of every neuron in the network
@@ -210,7 +198,7 @@ for e in range(w.shape[0]):
             '''
             count = 0
             for n in range(par.nn):
-                if spk[n] != []: count+=1
+                if spk[n][0] != []: count+=1
             
             '''
             check if every neuron in the network was active during the simulation
@@ -219,9 +207,8 @@ for e in range(w.shape[0]):
             if false, the number of input presented to the network is not sufficient
             to trigger the recall of the whole sequence.
             '''
-            print('total neurons triggered: '+str(count))
             if count == par.nn:
-                n_required[e,k] = subseq
+                n_required[e,k] = par.subseq
                 break
             else:
                 continue
@@ -237,7 +224,6 @@ plt.fill_between(range(w.shape[0]),n_required.mean(axis=1)+n_required.std(axis=1
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel('epochs')
 plt.ylabel(r'# neurons for replay')
-plt.ylim(0,9)
 plt.savefig(os.getcwd()+'/plots/n_needed.png',format='png', dpi=300)
 plt.savefig(os.getcwd()+'/plots/n_needed.pdf',format='pdf', dpi=300)
 plt.close('all')           
