@@ -33,10 +33,11 @@ def initialize_weights_nn_PyTorch(par,network):
         torch.nn.init.trunc_normal_(network.w, mean=par.init_mean, std=1/np.sqrt(par.n_in),
                                     a=par.init_a,b=par.init_b) 
     if par.init == 'fixed':
-        w = par.init_mean*torch.ones(par.n_in,par.nn)
-        w[par.n_in:,] = par.w_0rec
-        print(w)
-        network.w = nn.Parameter(w).to(par.device)
+        network.w = par.init_mean*torch.ones(par.n_in,par.nn)
+        
+    w_rec = par.w0_rec*np.ones((par.nn,par.nn))
+    w_rec = np.where(np.eye(par.nn)>0,np.zeros_like(w_rec),w_rec)
+    network.wrec = nn.Parameter(torch.as_tensor(w_rec,dtype=par.dtype).to(par.device))
     
     return network
 
@@ -51,7 +52,8 @@ def forward_nn_PyTorch(par,network,x):
         'update of the neuronal variables - forward pass'
         network(x[:,t,:,:])   
         for b in range(par.batch):
-            if network.z[b] != 0: z[b].append(t*par.dt)    
+            for n in range(par.nn):
+                if network.z[b][n].item() != 0: z[b].append(t*par.dt)    
         
     return network, torch.stack(v,dim=1), z
 
@@ -98,20 +100,22 @@ def train_nn_PyTorch(par,network,x=None,timing=None):
         EList = []
         x_hatList = []
         for n in range(par.nn):
-            x_hatList[n].append(torch.einsum("bt,j->btj",network.v[:,n],network.w[:,n]))
-            EList[n].append(.5*loss(x_hatList[n],x[:,:,:,n]))
+            x_hatList.append(torch.einsum("bt,j->btj",v[:,:,n],network.w[:,n]))
+            EList.append(.5*loss(x_hatList[n],x[:,:,:,n]))
         
         if par.optimizer != "online":
             for n in range(par.nn):
                 optimizerList[n].zero_grad()
             for n in range(par.nn):
-                EList[n].backward()
+                EList[n].backward(retain_graph = True)
             for n in range(par.nn):
                 optimizerList[n].step()
                 
         print(network.w)
         
         'save output'
+        v_list.append(v.detach().numpy())
+        spk_list.append(z)
 #        
         if e%50 == 0: 
             print('epoch {} out of {}'.format(e,par.epochs))

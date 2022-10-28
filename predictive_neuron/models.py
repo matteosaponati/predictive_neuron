@@ -407,7 +407,7 @@ class NetworkClass(nn.Module):
         self.w = nn.Parameter(torch.empty((self.par.n_in,self.par.nn)).to(self.par.device))
         torch.nn.init.normal_(self.w, mean=0.0, std=1/np.sqrt(self.par.n_in))
         
-        if self.par.is_rec == 'True':
+        if self.par.is_rec == True:
             w_rec = np.random.randn(self.par.nn,self.par.nn)/np.sqrt(self.par.nn)
             w_rec = np.where(np.eye(self.par.nn)>0,np.zeros_like(w_rec),w_rec)
             self.wrec = nn.Parameter(torch.as_tensor(w_rec,dtype=self.par.dtype).to(self.par.device))
