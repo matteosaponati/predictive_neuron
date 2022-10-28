@@ -58,7 +58,6 @@ if __name__ == '__main__':
     parser.add_argument('--freq', type=float, default=10) 
     parser.add_argument('--jitter_noise', type=bool, default=True) 
     parser.add_argument('--jitter', type=float, default=2)
-    parser.add_argument('--onset', type=bool, default=False)
     
     'network model'
     parser.add_argument('--is_rec', type=bool, default=True)
