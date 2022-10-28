@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "main_nn_selforganization_example.py":
-train the neural network model with nearest-neighbours connections (Figure 3)
+train the neural network model with learnable recurrent connections (Figure 3)
 
 Author:
     
@@ -29,51 +29,52 @@ class MidpointNormalize(colors.Normalize):
 		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-from predictive_neuron import models, funs_train, funs
+from predictive_neuron import funs_train, funs
 
 par = types.SimpleNamespace()
 
 'set model'
 par.dt = .05
-par.eta = 5e-7
-par.tau_m = 20.
-par.v_th = 2.7
-par.tau_x = 2.
+par.eta = 8e-7
+par.tau_m = 25.
+par.v_th = 3.
+par.tau_x = 2
 par.nn = 10
 par.lateral = 2
 par.is_rec = True
 
 'set noise sources'
-par.noise = True
+par.noise = False
 par.freq_noise = True
 par.freq = 10
 par.jitter_noise = True
-par.jitter = 1
+par.jitter = 2
 par.batch = 1
 par.upload_data = False
 
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.n_in = 2
+par.n_in = 8
 par.delay = 4
 timing = [[] for n in range(par.nn)]
 spk_times = np.linspace(par.Dt,par.Dt*par.n_in,par.n_in)/par.dt
 for n in range(par.nn): 
     for b in range(par.batch): 
         timing[n].append((spk_times+n*par.delay/par.dt).astype(int))
-par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
-        
-'set training algorithm'
-par.bound = 'none'
-par.epochs = 300
 
-'set initialization'
+'set initialization and training algorithm'
 par.init = 'fixed'
 par.init_mean = 0.02
 par.init_a, par.init_b = 0, .02
 par.w_0rec = .0003
 
+'set training algorithm'
+par.bound = 'none'
+par.epochs = 500
+
+'set noise sources'
+par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
 
 """
 quantification of the number of neurons that needs to be activate such that
@@ -141,7 +142,7 @@ class NetworkClass_Forward():
         self.par = par  
         self.alpha = (1-self.par.dt/self.par.tau_m)  
         self.beta = (1-self.par.dt/self.par.tau_x)              
-        self.w = np.zeros((self.par.n_in+self.par.nn,self.par.nn))
+        self.w = np.zeros((self.par.n_in+self.par.lateral,self.par.nn))
         
     def state(self):
         """initialization of network state"""
@@ -149,33 +150,41 @@ class NetworkClass_Forward():
         self.v = np.zeros(self.par.nn)
         self.z = np.zeros(self.par.nn)
         self.z_out = np.zeros(self.par.nn)
-
+        
     def __call__(self,x):
         
         'create total input'
-        x_tot = np.zeros((self.par.n_in+self.par.nn,self.par.nn))
+        x_tot = np.zeros((self.par.n_in+2,self.par.nn))
         self.z_out = self.beta*self.z_out + self.z
         for n in range(self.par.nn): 
-            
-            x_tot[:,n] = np.concatenate((x[:,n],np.append(np.delete(self.z_out,n,axis=0),[0],axis=0)),axis=0)  
+            if n == 0:
+                x_tot[:,n] = np.concatenate((x[:,n],np.array([0,self.z_out[n+1]])),axis=0)       
+            elif n == self.par.nn-1:
+                x_tot[:,n] = np.concatenate((x[:,n],np.array([self.z_out[n-1],0])),axis=0)   
+            else: 
+                x_tot[:,n] = np.concatenate((x[:,n],np.array([self.z_out[n-1],self.z_out[n+1]])),axis=0) 
                 
         'update membrane voltage (eq 1)'
         self.v = self.alpha*self.v + np.sum(x_tot*self.w,axis=0) \
                  - self.par.v_th*self.z
         self.z = np.zeros(self.par.nn)
-        self.z[self.v-self.par.v_th>0] = 1
-        
-'--------------------'
+        self.z[self.v-self.par.v_th>0] = 1  
+
+'---------------------------------------------'
+
+"""
+write description here
+"""
 
 'a) train the network'
 
-network = models.NetworkClass_SelfOrg_NumPy(par)
-network = funs_train.initialization_weights_nn_NumPy(par,network)
+# network = models.NetworkClass_SelfOrg_NumPy(par)
+# network = funs_train.initialization_weights_nn_NumPy(par,network)
 
-w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
+# w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
 
 'b) get weights across epochs'
-w = np.load(os.getcwd()+'/Desktop/w_nearest.npy')
+w = np.load(os.getcwd()+'/w_nn.npy')
 
 'set model with forward pass only'
 network = NetworkClass_Forward(par)
@@ -186,7 +195,7 @@ network = NetworkClass_Forward(par)
 'Panel b'
 
 'before'
-par.subseq, par.epochs = 1, 1
+par.subseq, par.epochs = 2, 1
 x = get_sequence_nn_subseqs(par,timing)
 network.w = w[0,:]
 
@@ -209,7 +218,7 @@ plt.close('all')
  
 'learning'
 x = funs.get_sequence_nn_selforg_NumPy(par,timing)
-network.w = w[10,:]
+network.w = w[30,:]
 
 _,_,spk = funs_train.train_nn_NumPy(par,network,x=x)
 
@@ -276,7 +285,7 @@ plt.close('all')
 hex_list = ['#33A1C9','#FFFAF0','#7D26CD']
 fig = plt.figure(figsize=(6,6), dpi=300)    
 divnorm = colors.TwoSlopeNorm(vmin=w[-1,:].min(),vcenter=0, vmax=w[-1,:].max())
-plt.imshow(np.flipud(w[-1,:]),cmap=funs.get_continuous_cmap(hex_list), norm=divnorm,aspect='auto')
+plt.imshow(w[-1,:],cmap=funs.get_continuous_cmap(hex_list), norm=divnorm,aspect='auto')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.colorbar()
 plt.title(r'$\vec{w}$')
