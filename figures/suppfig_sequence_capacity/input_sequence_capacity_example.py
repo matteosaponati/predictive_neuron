@@ -35,7 +35,7 @@ par.tau_x = 2.
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2
-par.N_sub = 6
+par.N_sub = 8
 par.delay = 20
 par.batch = 3
 par.N = par.N_sub*par.batch 
@@ -57,7 +57,7 @@ par.init_a, par.init_b = 0, .06
 'set noise sources'
 par.noise = True
 par.freq_noise = True
-par.freq = 10
+par.freq = 5
 par.jitter_noise = True
 par.jitter = 2
 

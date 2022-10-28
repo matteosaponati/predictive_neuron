@@ -30,14 +30,14 @@ class MidpointNormalize(colors.Normalize):
 		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-from predictive_neuron import models, funs_train, funs
+from predictive_neuron import models, funs_train
 
 par = types.SimpleNamespace()
 
 'set model'
 par.name = 'multisequence'
 par.dt = .05
-par.eta = 5e-6
+par.eta = 3e-7
 par.tau_m = 18.
 par.v_th = 2.6
 par.tau_x = 2.
@@ -87,45 +87,23 @@ there are two sources of noise for each epoch:
 neuron = models.NeuronClass_NumPy(par)
 neuron.w = funs_train.initialize_weights_NumPy(par,neuron)
 
-#%%
-
 'training'
 w,v,spk,loss = funs_train.train_NumPy(par,neuron,timing=timing)
 
 '---------------------------------------------'
 'plots'
 
-
-
-w_plot = np.vstack(w)
-plt.imshow(w_plot,aspect='auto')
-
-#%%
-
-for k in np.arange(0,par.N,par.N_sub):
-    plt.plot(w_plot[:,k])
-
-#%%
+'Panel b'
+fig = plt.figure(figsize=(8,6), dpi=300)
 for k,j in zip(spk,range(par.epochs)):
     plt.scatter([j]*len(k),np.array(k),c='rebeccapurple',s=2)
 plt.ylabel(r'time [ms]')
 plt.ylim(0,par.T*par.dt)
 plt.xlim(0,par.epochs)
-
-
-#%%
-
-'Panel b'
-fig = plt.figure(figsize=(7,6), dpi=300)
-for k,j in zip(spk,range(par.epochs)):
-    plt.scatter([j]*len(k),np.array(k)-par.onset_list[j]*par.dt,c='rebeccapurple',s=2)
-plt.ylabel(r'time [ms]')
-plt.ylim(0,par.T*par.dt)
-plt.xlim(0,par.epochs)
 plt.xlabel('epochs')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig(os.getcwd()+'/spk.png', format='png', dpi=300)
-plt.savefig(os.getcwd()+'/spk.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_capacity.png', format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/spk_capacity.pdf', format='pdf', dpi=300)
 plt.close('all')
 
 'Panel c'
@@ -135,10 +113,10 @@ plt.title(r'$\vec{w}/\vec{w}_0$')
 plt.ylabel(r'inputs')
 plt.xlabel(r'epochs')
 plt.xlim(0,par.epochs)
-plt.ylim(0,par.N)
+plt.ylim(0,par.N-1)
 plt.imshow(w_plot.T/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
 plt.colorbar()
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig(os.getcwd()+'/w.png', format='png', dpi=300)
-plt.savefig(os.getcwd()+'/w.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/w.png', format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/w.pdf', format='pdf', dpi=300)
 plt.close('all')
