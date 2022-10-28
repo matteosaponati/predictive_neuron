@@ -33,8 +33,13 @@ this repo is structured as follows:
   + `/fig_sequences/` to reproduce the results in Fig 2
   + `/fig_nn_selforganization/` to reproduce the results in Fig 3
   + `/fig_stdp/` to reproduce the results in Fig 4
+  + `/suppfig_model/` to reproduce the results in Fig S1
+  + `/suppfig_nn_selforganization_alltoall/` to reproduce the results in Fig S7
+  + `/suppfig_replay/` to reproduce the results in Fig S6
+  + `/suppfig_sequence_capacity/` to reproduce the results in Fig S5
+  + `/suppfig_stdp/` to reproduce the results in Fig S8, S9 and S10
   
 + `./predictive_neuron/` contains the Python modules and the helper functions for the analysis
-+ `./scripts/`
++ `./scripts/` contains scripts to test the model on different types of inputs and network implementations.
 
 -------------------------
