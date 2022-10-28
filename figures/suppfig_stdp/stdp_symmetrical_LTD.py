@@ -52,8 +52,6 @@ par.epochs = 100
 'initial conditions'
 w_0 = np.array([.04,.09])
 
-#%%
-
 'create input pattern'
 def get_sequence_stdp(par,timing):    
     x_data = np.zeros((par.N,par.T))

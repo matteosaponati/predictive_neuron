@@ -122,7 +122,7 @@ w = np.load(os.getcwd()+'/w_nn.npy')
 rep = 100
 dt = np.zeros((w.shape[0],rep))
 
-for e in range(610,w.shape[0]):
+for e in range(900,w.shape[0]):
     
     for k in range(rep):
         
@@ -148,5 +148,5 @@ fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.ylabel(r'$\Delta t$ [ms]')
 plt.xlabel(r'neurons')
 plt.savefig(os.getcwd()+'/plots/timing_difference.png',format='png', dpi=300)
-plt.savefig(os.getcwd()+'/Desktop/timing_difference.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/timing_difference.pdf',format='pdf', dpi=300)
 plt.close('all')

@@ -16,6 +16,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -137,6 +138,6 @@ plt.ylabel(r'$w/w_0$')
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.axvline(x=0, color='black',linewidth=1.5)
 fig.tight_layout(rect=[0, 0.01, 1, 0.96])
-plt.savefig('stdp_window.png', format='png', dpi=300)
-plt.savefig('stdp_window.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_window.png', format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_window.pdf', format='pdf', dpi=300)
 plt.close('all')

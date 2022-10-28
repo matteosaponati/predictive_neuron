@@ -16,6 +16,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -46,7 +47,7 @@ dynamics of anticipation and predictive plasticity
 inputs:
     1. w_0: different set of initial conditions
 """
-w_0 = [[.15,.06,.02],[.15,.06,.15]]
+w_0 = [[.15,.15,],[.06,.06],[.02,.15]]
 
 w1_tot, w2_tot = [],[]
 v_tot, spk_tot = [], []    
@@ -80,8 +81,8 @@ plt.xlim(0,par.epochs)
 plt.ylim(0,10)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('s_convergence.png',format='png', dpi=300)
-plt.savefig('s_convergence.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/s_convergence.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/s_convergence.pdf',format='pdf', dpi=300)
 plt.close('all')
 
 fig = plt.figure(figsize=(6,6), dpi=300)
@@ -94,8 +95,8 @@ plt.xlim(0,par.epochs)
 plt.ylim(bottom=0)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('w_convergence.png',format='png', dpi=300)
-plt.savefig('w_convergence.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/w_convergence.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/w_convergence.pdf',format='pdf', dpi=300)
 plt.close('all')
 
 '----------'
@@ -139,6 +140,6 @@ plt.quiver(x,y,dw_2,dw_1,angles='xy',color='mediumvioletred',headwidth=2)
 for s in range(len(w_0)):
     plt.plot(w2_tot[s],w1_tot[s],linewidth=2,color='purple')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('vector_field.png', format='png', dpi=300)
-plt.savefig('vector_field.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/vector_field.png', format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/vector_field.pdf', format='pdf', dpi=300)
 plt.close('all')

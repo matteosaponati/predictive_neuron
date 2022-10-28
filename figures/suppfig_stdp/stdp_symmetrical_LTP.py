@@ -15,6 +15,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -40,6 +41,18 @@ par.epochs = 60
 'initial conditions'
 w_0 = np.array([.0007,.02])
 
+'---------------------------------------------'
+def train_stdp(par,neuron,x_data):
+    w1, w2 = [], []
+    for e in range(par.epochs):        
+        neuron.state()
+        neuron, _, _, _ = funs_train.forward_NumPy(par,neuron,x_data)        
+        w1.append(neuron.w[0].item())
+        w2.append(neuron.w[1].item())
+        if e%10 == 0: print(e)        
+    return w1, w2
+'---------------------------------------------'
+
 """
 we reproduce the classical pre-post pairing protocol by changing the delay
 between the two pre-synaptic inputs
@@ -58,24 +71,24 @@ for k in range(len(delay)):
     'pre-post pairing'
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0.copy()
-    w1,w2 = funs_train.train_STDP(par,neuron,x_data)
+    w1,w2 = train_stdp(par,neuron,x_data)
     w_prepost.append(w1[-1])
     
     'post-pre pairing'
     neuron = models.NeuronClass_NumPy(par)
     neuron.w = w_0[::-1].copy()
-    w1,w2 = funs_train.train_STDP(par,neuron,x_data)
+    w1,w2 = train_stdp(par,neuron,x_data)
     w_postpre.append(w2[-1])  
     
 'plot'
 fig = plt.figure(figsize=(6,6), dpi=300)
-plt.plot(-delay[::-1]*par.dt,w_prepost[::-1]/w_0[0],linewidth=2)
-plt.plot(delay*par.dt,w_postpre/w_0[0],linewidth=2)
+plt.plot(-delay[::-1]*par.dt,w_prepost[::-1]/w_0[0],linewidth=2,color='mediumvioletred')
+plt.plot(delay*par.dt,w_postpre/w_0[0],linewidth=2,color='mediumvioletred')
 plt.xlabel(r'$\Delta t$ [ms]')
 plt.ylabel(r'$w/w_0$')
 plt.axhline(y=1, color='black',linestyle='dashed',linewidth=1.5)
 plt.axvline(x=0, color='black',linewidth=1.5)
 fig.tight_layout(rect=[0, 0.01, 1, 0.96])
-plt.savefig('stdp_window_symmetrical.png', format='png', dpi=300)
-plt.savefig('stdp_window_symmetrical.pdf', format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_window_symmetrical.png', format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_window_symmetrical.pdf', format='pdf', dpi=300)
 plt.close('all')

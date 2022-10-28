@@ -18,6 +18,7 @@ Author:
 """
 
 import numpy as np
+import os
 import types
 import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
@@ -80,6 +81,6 @@ fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel(r'$w_0$')
 plt.ylabel(r'$w/w_0$')
 plt.axhline(y=1,color='k',linestyle='dashed')
-plt.savefig('stdp_initial_weight.png',format='png', dpi=300)
-plt.savefig('stdp_initial_weight.pdf',format='pdf', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_initial_weight.png',format='png', dpi=300)
+plt.savefig(os.getcwd()+'/plots/stdp_initial_weight.pdf',format='pdf', dpi=300)
 plt.close('all')
