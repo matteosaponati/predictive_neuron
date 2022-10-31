@@ -122,7 +122,7 @@ w = np.load(os.getcwd()+'/w_nn.npy')
 rep = 100
 dt = np.zeros((w.shape[0],rep))
 
-for e in range(900,w.shape[0]):
+for e in range(1867,w.shape[0]):
     
     for k in range(rep):
         
@@ -134,6 +134,8 @@ for e in range(900,w.shape[0]):
         if spk[-1][-1] != [] and spk[0][0] != []:
             dt[e,k] = spk[-1][-1][0] - spk[0][0][0]
         else: dt[e,k] = dt[e,k-1] 
+        
+np.save(os.getcwd()+'/timing_difference.npy')     
         
 '---------------------------------------------'
 'plots'
