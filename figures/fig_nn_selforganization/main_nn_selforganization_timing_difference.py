@@ -135,7 +135,7 @@ for e in range(1867,w.shape[0]):
             dt[e,k] = spk[-1][-1][0] - spk[0][0][0]
         else: dt[e,k] = dt[e,k-1] 
         
-np.save(os.getcwd()+'/timing_difference.npy')     
+np.save(os.getcwd()+'/timing_difference.npy',dt)     
         
 '---------------------------------------------'
 'plots'
@@ -148,7 +148,7 @@ plt.fill_between(range(w.shape[0]),dt.mean(axis=1)+dt.std(axis=1),
                  dt.mean(axis=1)-dt.std(axis=1),color='mediumvioletred',alpha=.3)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.ylabel(r'$\Delta t$ [ms]')
-plt.xlabel(r'neurons')
+plt.xlabel(r'epochs')
 plt.savefig(os.getcwd()+'/plots/timing_difference.png',format='png', dpi=300)
 plt.savefig(os.getcwd()+'/plots/timing_difference.pdf',format='pdf', dpi=300)
 plt.close('all')
