@@ -33,7 +33,7 @@ par.tau_x = 2.
 par.bound = 'soft'
 
 'set inputs'
-par.noise = False
+par.noise = 0
 par.N = 2
 par.T = int(100/par.dt)
 par.epochs = 300

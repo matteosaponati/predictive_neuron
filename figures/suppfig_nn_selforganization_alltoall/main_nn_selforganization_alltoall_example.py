@@ -43,13 +43,12 @@ par.nn = 8
 par.is_rec = True
 
 'set noise sources'
-par.noise = False
-par.freq_noise = True
+par.noise = 1
+par.freq_noise = 1
 par.freq = 10
-par.jitter_noise = True
+par.jitter_noise = 1
 par.jitter = 2
-par.batch = 1
-par.upload_data = False
+par.upload_data = 0
 
 'set input'
 par.sequence = 'deterministic'

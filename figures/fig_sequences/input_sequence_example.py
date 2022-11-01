@@ -19,25 +19,27 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-'set parameters'
-par = types.SimpleNamespace()
-par.sequence = "deterministic"
-par.dt = .05
+'set input'
+par.sequence = 'deterministic'
 par.Dt = 2
 par.N_seq = 100
 par.N_dist = 100
-par.offset = True
-par.freq_noise = True
-par.freq = 10
-par.jitter_noise = True
-par.jitter = 2
-par.batch = 1
-par.T = 2*int((par.Dt*par.N_seq)/(par.dt))
-par.device = 'cpu'
-savedir = '/Users/saponatim/Desktop/'
-
-'set total input'
 par.N = par.N_seq+par.N_dist   
+timing = (np.linspace(par.Dt,par.Dt*par.N_seq,par.N_seq)/par.dt).astype(int)
+
+par.dt = .05
+par.tau_x = 2.
+
+'set noise sources'
+par.noise = 1
+par.freq_noise = 1
+par.freq = 10
+par.jitter_noise = 1
+par.jitter = 2
+par.T = int(2*(par.Dt*par.N_seq + par.jitter)/par.dt) 
+par.onset = 1
+
+'---------------------------------------------'
 
 'create sequence'
 if par.sequence == 'deterministic':

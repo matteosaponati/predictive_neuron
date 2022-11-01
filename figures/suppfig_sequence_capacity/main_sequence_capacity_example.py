@@ -66,10 +66,10 @@ par.init_mean = 0.04
 par.init_a, par.init_b = 0, .06
 
 'set noise sources'
-par.noise = True
-par.freq_noise = True
+par.noise = 1
+par.freq_noise = 1
 par.freq = 5
-par.jitter_noise = True
+par.jitter_noise = 1
 par.jitter = 2
 
 par.T = int((par.Dt*par.N + (par.batch)*par.delay +par.jitter)/(par.dt))

@@ -59,13 +59,13 @@ par.init_mean = 0.1
 par.init_a, par.init_b = 0, .03
 
 'set noise sources'
-par.noise = True
-par.freq_noise = True
+par.noise = 1
+par.freq_noise = 1
 par.freq = 10
-par.jitter_noise = True
+par.jitter_noise = 1
 par.jitter = 2
 par.T = int(2*(par.Dt*par.N_seq + par.jitter)/par.dt) 
-par.onset = True
+par.onset = 1
 par.onset_list = np.random.randint(0,par.T/2,par.epochs)
 
 '---------------------------------------------'
