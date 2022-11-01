@@ -62,16 +62,19 @@ def train_NumPy(par,neuron,x=None,timing=None):
     
     for e in range(par.epochs):     
         
-        if par.noise == True:
-            
-            if par.name == 'sequence': 
-                x = funs.get_sequence_NumPy(par,timing,
-                                             onset=par.onset_list[e])
-            if par.name == 'multisequence': 
-                x = funs.get_multisequence_NumPy(par,timing)
-                
-            if par.name == 'rhythms':
-                x = funs.get_rhythms_NumPy(par,timing)
+        'upload data or create datapoint from scratch'
+        
+        if par.upload_data == 1:
+             x = np.load(par.load_dir+'x_NumPy_{}.npy'.format(np.random.randint(1000)))
+        
+        else:
+            if par.noise == 1:
+                if par.name == 'sequence': 
+                    x = funs.get_sequence_NumPy(par,timing,onset=par.onset_list[e])
+                if par.name == 'multisequence': 
+                    x = funs.get_multisequence_NumPy(par,timing)
+                if par.name == 'rhythms':
+                    x = funs.get_rhythms_NumPy(par,timing)
         
         neuron.state()
         neuron, v, spk, loss = forward_NumPy(par,neuron,x)    

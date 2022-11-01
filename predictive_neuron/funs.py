@@ -119,7 +119,7 @@ def get_sequence_rhythms(par,timing,onset=None):
 '--------------'
 'get sequence - NumPy version + get sequence for STDP protocols'
 
-def get_sequence_NumPy(par,timing,onset):
+def get_sequence_NumPy(par,timing,onset=None):
     
     'set random input onset'
     if par.onset == True: timing = timing.copy() + onset

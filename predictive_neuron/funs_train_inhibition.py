@@ -15,7 +15,6 @@ Author:
 """
 
 import numpy as np
-import scipy.stats as stats
 import torch
 import torch.nn as nn
 
@@ -28,10 +27,13 @@ from predictive_neuron import funs
 
 def initialize_weights_nn_PyTorch(par,network):
     
-    if par.init == 'random':
+    if par.init == 'trunc_gauss':
         network.w = nn.Parameter(torch.empty(par.n_in,par.nn)).to(par.device)
         torch.nn.init.trunc_normal_(network.w, mean=par.init_mean, std=1/np.sqrt(par.n_in),
                                     a=par.init_a,b=par.init_b) 
+    if par.init == 'uniform':
+        network.w = nn.Parameter(torch.FloatTensor(par.n_in,par.nn).uniform_(0.,par.init_mean))
+        
     if par.init == 'fixed':
         network.w = par.init_mean*torch.ones(par.n_in,par.nn)
         
@@ -43,17 +45,17 @@ def initialize_weights_nn_PyTorch(par,network):
 
 def forward_nn_PyTorch(par,network,x):
     
-    v,z = [], [[] for b in range(par.batch)]
+    v,z = [], [[[] for n in range(par.nn)] for b in range(par.batch)]
     
     for t in range(par.T):            
 
-        v.append(network.v)              
+        v.append(network.v.detach().clone())              
 
         'update of the neuronal variables - forward pass'
         network(x[:,t,:,:])   
         for b in range(par.batch):
             for n in range(par.nn):
-                if network.z[b][n].item() != 0: z[b].append(t*par.dt)    
+                if network.z[b][n].item() != 0: z[b][n].append(t*par.dt)    
         
     return network, torch.stack(v,dim=1), z
 
@@ -110,14 +112,14 @@ def train_nn_PyTorch(par,network,x=None,timing=None):
                 EList[n].backward(retain_graph = True)
             for n in range(par.nn):
                 optimizerList[n].step()
-                
-        print(network.w)
         
         'save output'
-        v_list.append(v.detach().numpy())
+        v_list.append(v.numpy())
         spk_list.append(z)
+        w_list.append(network.w.detach().clone().numpy())
 #        
         if e%50 == 0: 
+            print(network.w)
             print('epoch {} out of {}'.format(e,par.epochs))
     
     return w_list, v_list, spk_list, loss_list
