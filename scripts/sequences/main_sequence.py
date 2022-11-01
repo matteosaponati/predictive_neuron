@@ -36,7 +36,7 @@ if __name__ == '__main__':
                         help='choice of optimizer')
     
     parser.add_argument('--bound',type=str,
-                        choices=['None','hard','soft'],default='None',
+                        choices=['None','hard','soft'],default='soft',
                         help='set hard lower bound for parameters')
     
     parser.add_argument('--init',type=str, 
@@ -55,10 +55,10 @@ if __name__ == '__main__':
     
     'set input sequence'
     parser.add_argument('--sequence',type=str, 
-                        choices=['deterministic','random'],default='random')
-    parser.add_argument('--Dt', type=int, default=4) 
-    parser.add_argument('--N_seq', type=int, default=10)
-    parser.add_argument('--N_dist', type=int, default=10)
+                        choices=['deterministic','random'],default='deterministic')
+    parser.add_argument('--Dt', type=int, default=2) 
+    parser.add_argument('--N_seq', type=int, default=100)
+    parser.add_argument('--N_dist', type=int, default=100)
     
     'set noise sources'
     parser.add_argument('--noise', type=bool, default=True)
@@ -71,8 +71,8 @@ if __name__ == '__main__':
     'neuron model'
     parser.add_argument('--dt', type=float, default= .05) 
     parser.add_argument('--tau_m', type=float, default= 10.) 
-    parser.add_argument('--v_th', type=float, default= 2.)
-    parser.add_argument('--eta',type=float, default=1e-3)
+    parser.add_argument('--v_th', type=float, default= 1.4)
+    parser.add_argument('--eta',type=float, default=5e-4)
     parser.add_argument('--tau_x', type=float, default= 2.)
     parser.add_argument('--dtype', type=str, default=torch.float) 
     
@@ -83,6 +83,10 @@ if __name__ == '__main__':
     'set total length of simulation and total input size'
     par.T = int(2*(par.Dt*par.N_seq + par.jitter)/(par.dt))
     par.N = par.N_seq+par.N_dist
+    
+    'set onset'
+    if par.onset == True:
+        par.onset_list = np.random.randint(0,par.T/2,par.epochs)
     
     'set timing'
     if par.sequence == 'deterministic':
