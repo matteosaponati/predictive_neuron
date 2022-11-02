@@ -20,7 +20,6 @@ The current version of the scripts have been tested with Python 3.8. All the dep
 The project has a pip-installable package. How to set it up:
 
 - `git clone` the repository 
-- `cd ../predictive_neuron/`
 - `pip install -e . `
 
 **structure**
