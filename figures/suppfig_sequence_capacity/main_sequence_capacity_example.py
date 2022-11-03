@@ -60,13 +60,11 @@ for b in range(par.batch):
 par.bound = 'none'
 par.epochs = 6000
 
-'set initialization'
-par.init = 'fixed'
-par.init_mean = 0.04
-par.init_a, par.init_b = 0, .06
+
 
 'set noise sources'
 par.noise = 1
+par.upload_data = 0
 par.freq_noise = 1
 par.freq = 5
 par.jitter_noise = 1
