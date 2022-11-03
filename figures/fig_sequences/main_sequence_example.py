@@ -60,6 +60,7 @@ par.init_a, par.init_b = 0, .03
 
 'set noise sources'
 par.noise = 1
+par.upload_data = 0
 par.freq_noise = 1
 par.freq = 10
 par.jitter_noise = 1

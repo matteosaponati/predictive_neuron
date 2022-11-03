@@ -34,6 +34,7 @@ par.bound = 'soft'
 
 'set inputs'
 par.noise = 0
+par.upload_data = 0
 par.N = 2
 par.T = int(100/par.dt)
 par.epochs = 300

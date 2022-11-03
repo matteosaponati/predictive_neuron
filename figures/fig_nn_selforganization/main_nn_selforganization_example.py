@@ -29,7 +29,7 @@ class MidpointNormalize(colors.Normalize):
 		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-from predictive_neuron import funs_train, funs
+from predictive_neuron import funs_train, funs, models
 
 par = types.SimpleNamespace()
 
@@ -42,9 +42,11 @@ par.tau_x = 2
 par.nn = 10
 par.lateral = 2
 par.is_rec = True
+par.batch = 1
 
 'set noise sources'
 par.noise = 1
+par.upload_data = 0
 par.freq_noise = 1
 par.freq = 10
 par.jitter_noise = 1
@@ -70,7 +72,7 @@ par.w_0rec = .0003
 
 'set training algorithm'
 par.bound = 'none'
-par.epochs = 500
+par.epochs = 2000
 
 'set noise sources'
 par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
@@ -177,10 +179,10 @@ write description here
 
 'a) train the network'
 
-# network = models.NetworkClass_SelfOrg_NumPy(par)
-# network = funs_train.initialization_weights_nn_NumPy(par,network)
+#network = models.NetworkClass_SelfOrg_NumPy(par)
+#network = funs_train.initialization_weights_nn_NumPy(par,network)
 
-# w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
+#w,v,spk = funs_train.train_nn_NumPy(par,network,timing=timing)
 
 'b) get weights across epochs'
 w = np.load(os.getcwd()+'/w_nn.npy')
