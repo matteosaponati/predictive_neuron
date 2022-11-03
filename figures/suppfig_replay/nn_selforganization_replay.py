@@ -42,9 +42,11 @@ par.tau_x = 2
 par.nn = 10
 par.lateral = 2
 par.is_rec = True
+par.batch = 1
 
 'set noise sources'
 par.noise = 1
+par.upload_data = 0
 par.freq_noise = 1
 par.freq = 10
 par.jitter_noise = 1

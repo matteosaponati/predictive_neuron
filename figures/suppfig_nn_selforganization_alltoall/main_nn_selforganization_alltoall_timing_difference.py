@@ -33,9 +33,11 @@ par.v_th = 2.9
 par.tau_x = 2.
 par.nn = 8
 par.is_rec = True
+par.batch = 1
 
 'set noise sources'
 par.noise = 1
+par.upload_data = 0
 par.freq_noise = 1
 par.freq = 10
 par.jitter_noise = 1
