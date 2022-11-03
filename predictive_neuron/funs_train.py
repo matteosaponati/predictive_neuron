@@ -225,16 +225,12 @@ def train_PyTorch(par,neuron,x=None,timing=None):
     for e in range(par.epochs):
                 
         'load input data'
-        if par.noise == True:
-            
+        if par.noise == 1:
             if par.name == 'sequence': 
                 x,_ = funs.get_sequence(par,timing)
             if par.name == 'multisequence': 
                 x = funs.get_multisequence(par,timing)
-    
-        # x_data = np.load(par.loaddir+'sequence_Dt_{}_Nseq_{}_Ndist_{}_rep_{}.npy'.format(
-        #                     par.Dt,par.N_seq,par.N_dist,np.random.randint(1000)))
-        
+            
         'initialize neuron state and solve dynamics (forward pass)'
         neuron.state()
         neuron, v, z = forward_PyTorch(par,neuron,x)
@@ -251,7 +247,6 @@ def train_PyTorch(par,neuron,x=None,timing=None):
         if par.optimizer != "online":
             optimizer.zero_grad()
             E.backward()
-            # print(neuron.w.grad)
             optimizer.step()
         
         'save output'
