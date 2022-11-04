@@ -36,10 +36,11 @@ savedir = '/mnt/hpc/departmentN4/matteo/predictive_neuron/figures/suppfig_sequen
 '--------------------------------------------------'
 'tau_m and v_th'
 
-tau_m_sweep = [x for x in np.arange(1.,30.,1)]
-v_th_sweep = [x/10 for x in range(1,30,1)]
+tau_m_sweep = [x for x in np.arange(1.,40.,.5)]
+v_th_sweep = [x/10 for x in np.arange(1,40,.5)]
 
 matrix = np.zeros((len(tau_m_sweep),len(v_th_sweep)))
+last_spike = np.zeros((len(tau_m_sweep),len(v_th_sweep)))
 mask = np.zeros((len(tau_m_sweep),len(v_th_sweep)))    
 
 for tm in range(len(tau_m_sweep)):
@@ -54,9 +55,10 @@ for tm in range(len(tau_m_sweep)):
         w = np.load(load_dir+'w_taum_{}_vth_{}_eta_{}_init_mean_{}_rep_{}.npy'.format(
                                     tau_m_sweep[tm],v_th_sweep[th],eta,init_mean,rep))
         
-        if w[-1,:].argmax() == 0 and spk[-1] != [] and spk[-1][-1] < 20 and len(spk[-1])<100: mask[tm,th] = 1        
-        if spk[-1] != []: matrix[tm,th] = len(spk[-1])
-
+        if w[-1,:].argmax() == 0 and spk[-1] != [] and spk[-1][-1] < 30 and len(spk[-1])<100: mask[tm,th] = 1        
+        if spk[-1] != []: 
+            matrix[tm,th] = len(spk[-1])
+            last_spike[tm,th] = spk[-1][-1]
 
 np.save(savedir+'parspace_taum_vth',matrix)
 np.save(savedir+'mask_taum_vth',mask)
@@ -66,8 +68,8 @@ norm = colors.BoundaryNorm(boundaries=np.linspace(0,1000,11),ncolors=256)
 plt.imshow(np.flipud(matrix),cmap='Purples',norm=norm,aspect='auto')
 plt.colorbar()
 plt.contour(np.flipud(mask),10,colors='black',linewidths=.1)
-plt.yticks(np.arange(len(tau_m_sweep))[::4],tau_m_sweep[::-1][::4])
-plt.xticks(np.arange(len(v_th_sweep))[::4],v_th_sweep[::4])
+plt.yticks([0,len(tau_m_sweep)],[tau_m_sweep[-2],tau_m_sweep[0]])
+plt.xticks([0,len(v_th_sweep)],[v_th_sweep[0],v_th_sweep[-2]])
 plt.xlabel(r'$v_{th}$')
 plt.ylabel(r'$\tau_{m}$')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
@@ -75,12 +77,25 @@ plt.savefig(savedir+'parameter_space_taum_vth.png',format='png', dpi=300)
 plt.savefig(savedir+'parameter_space_taum_vth.pdf',format='pdf', dpi=300)
 plt.close('all')
 
+
+fig = plt.figure(figsize=(7,6), dpi=300)
+plt.imshow(np.flipud(last_spike),cmap='Purples',aspect='auto')
+plt.colorbar()
+plt.contour(np.flipud(mask),10,colors='black',linewidths=.1)
+plt.yticks([0,len(tau_m_sweep)],[tau_m_sweep[-2],tau_m_sweep[0]])
+plt.xticks([0,len(v_th_sweep)],[v_th_sweep[0],v_th_sweep[-2]])
+plt.xlabel(r'$v_{th}$')
+plt.ylabel(r'$\tau_{m}$')
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig(savedir+'last_spike_taum_vth.png',format='png', dpi=300)
+plt.savefig(savedir+'last_spike_space_taum_vth.pdf',format='pdf', dpi=300)
+plt.close('all')
+
 fig = plt.figure(figsize=(7,6), dpi=300)
 plt.imshow(np.flipud(mask),cmap='coolwarm',aspect='auto')
-plt.yticks(np.arange(len(tau_m_sweep))[::5],tau_m_sweep[::5][::-1])
-plt.xticks(np.arange(len(v_th_sweep))[::10],v_th_sweep[::10])
+plt.yticks([0,len(tau_m_sweep)],[tau_m_sweep[-2],tau_m_sweep[0]])
+plt.xticks([0,len(v_th_sweep)],[v_th_sweep[0],v_th_sweep[-2]])
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlim(0,11)
 plt.colorbar()
 plt.xlabel(r'$v_{th}$')
 plt.ylabel(r'$\tau_{m}$')
