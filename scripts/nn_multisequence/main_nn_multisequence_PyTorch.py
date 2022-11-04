@@ -50,18 +50,19 @@ if __name__ == '__main__':
     
     'set input sequence'
     parser.add_argument('--n_in', type=int, default=100)
+    parser.add_argument('--nn', type=int, default=10)
     parser.add_argument('--Dt', type=int, default=2) 
     
     'set noise sources'
-    parser.add_argument('--noise', type=bool, default=True)
-    parser.add_argument('--freq_noise', type=bool, default=True)
+    parser.add_argument('--noise', type=int, default=1)
+    parser.add_argument('--freq_noise', type=int, default=1)
     parser.add_argument('--freq', type=float, default=10) 
-    parser.add_argument('--jitter_noise', type=bool, default=True) 
+    parser.add_argument('--jitter_noise', type=int, default=0) 
     parser.add_argument('--jitter', type=float, default=2)
+    parser.add_argument('--onset', type=int, default=0)
     
     'network model'
     parser.add_argument('--is_rec', type=bool, default=True)
-    parser.add_argument('--nn', type=int, default=10)
     parser.add_argument('--w0_rec', type=float, default=-.05) 
     parser.add_argument('--dt', type=float, default= .05) 
     parser.add_argument('--tau_m', type=float, default= 10.) 
@@ -70,7 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('--tau_x', type=float, default= 2.)
     parser.add_argument('--dtype', type=str, default=torch.float) 
     
-    parser.add_argument('--upload_data', type=bool, default=False)  
+    parser.add_argument('--upload_data', type=bool, default=0)  
     parser.add_argument('--load_dir', type=str, default='') 
     parser.add_argument('--save_dir', type=str, default='')
     
@@ -90,6 +91,8 @@ if __name__ == '__main__':
     timing = [[] for n in range(par.nn)]
     for n in range(par.nn):
         for b in range(par.batch): timing[n].append(spk_times[b])
+    
+    ## need of saving timing here, otherwise you cannot read anything
         
     'set model'
     network = models.NetworkClass(par)
