@@ -60,8 +60,6 @@ for b in range(par.batch):
 par.bound = 'none'
 par.epochs = 6000
 
-
-
 'set noise sources'
 par.noise = 1
 par.upload_data = 0

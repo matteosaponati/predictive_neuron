@@ -65,7 +65,6 @@ par.dt = .05
 par.eta = 1e-3
 par.tau_x = 2.
 
-
 """
 Figure S5d
 
