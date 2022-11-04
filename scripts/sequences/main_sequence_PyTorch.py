@@ -40,7 +40,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--init_mean',type=float, default=0.1)
     parser.add_argument('--init_a',type=float, default=0.)
-    parser.add_argument('--init_b',type=float, default=.8)
+    parser.add_argument('--init_b',type=float, default=.05)
 
     parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--seed', type=int, default=1992)
@@ -122,7 +122,5 @@ if __name__ == '__main__':
                             par.tau_m,par.v_th,par.eta,par.init_mean,par.rep),v)
     np.save(par.save_dir+'spk_taum_{}_vth_{}_eta_{}_init_mean_{}_rep_{}'.format(
                             par.tau_m,par.v_th,par.eta,par.init_mean,par.rep),spk)
-    np.save(par.save_dir+'loss_taum_{}_vth_{}_eta_{}_init_mean_{}_rep_{}'.format(
-                            par.tau_m,par.v_th,par.eta,par.init_mean,par.rep),loss)
     
     '--------------------'

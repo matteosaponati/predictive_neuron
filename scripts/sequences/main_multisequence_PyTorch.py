@@ -40,9 +40,9 @@ if __name__ == '__main__':
                         choices=['classic','random','fixed'],default='fixed',
                         help='type of weights initialization')
     
-    parser.add_argument('--init_mean',type=float, default=0.2)
+    parser.add_argument('--init_mean',type=float, default=0.04)
     parser.add_argument('--init_a',type=float, default=0.)
-    parser.add_argument('--init_b',type=float, default=.4)
+    parser.add_argument('--init_b',type=float, default=.08)
 
     parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--seed', type=int, default=1992)
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--eta',type=float, default=5e-4)
     parser.add_argument('--tau_x', type=float, default= 2.)
     
-    parser.add_argument('--upload_data', type=int, default=1)  
+    parser.add_argument('--upload_data', type=int, default=0)  
     parser.add_argument('--load_dir', type=str, default='') 
     parser.add_argument('--save_dir', type=str, default='')
     
@@ -82,16 +82,16 @@ if __name__ == '__main__':
     '-----------------'
     
     par.save_dir = '/mnt/hpc/departmentN4/predictive_neuron_data/multisequences/'+\
-		'Dt_{}_N_seq_{}_N_dist_{}_noise_{}_jitter_noise_{}_jitter_{}_freq_noise_{}_freq_{}_onset_{}/'.format(
-                    par.	Dt,par.N_seq,par.N_dist,par.noise,par.jitter_noise,par.jitter,
+		'Dt_{}_N_sub_{}_batch_{}_noise_{}_jitter_noise_{}_jitter_{}_freq_noise_{}_freq_{}_onset_{}/'.format(
+                    par.	Dt,par.N_sub,par.batch,par.noise,par.jitter_noise,par.jitter,
                     par.freq_noise,par.freq,par.onset)
     if not os.path.exists(par.save_dir): os.makedirs(par.save_dir)
     
-    par.load_dir = '/mnt/hpc/departmentN4/predictive_neuron_data/multisequences_dataset/'+ \
-    		'Dt_{}_N_seq_{}_N_dist_{}_noise_{}_jitter_noise_{}_jitter_{}_freq_noise_{}_freq_{}_onset_{}/'.format(
-                	par.Dt,par.N_seq,par.N_dist,par.noise,par.jitter_noise,
-                    par.jitter,par.freq_noise,par.freq,par.onset)
-    
+    par.load_dir = '/mnt/hpc/departmentN4/predictive_neuron_data/multisequences/'+\
+		'Dt_{}_N_sub_{}_batch_{}_noise_{}_jitter_noise_{}_jitter_{}_freq_noise_{}_freq_{}_onset_{}/'.format(
+                    par.	Dt,par.N_sub,par.batch,par.noise,par.jitter_noise,par.jitter,
+                    par.freq_noise,par.freq,par.onset)
+        
     'set total length of simulation and total input size'
     par.N = par.batch*par.N_sub
     par.T = int(2*(par.Dt*par.N_sub + par.jitter)/(par.dt))
