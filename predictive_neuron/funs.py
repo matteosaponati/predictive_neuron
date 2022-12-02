@@ -19,10 +19,78 @@ import torch
 import torch.nn.functional as F
 import matplotlib.colors as colors
 
-'---------------------------------------------'
-'get sequence - PyTorch version'
+'----------------------------------------------------------------------------------------'
+'get sequences'
 
-def get_firing_rate(par,x,Dt=1):
+def get_sequence(par,timing,onset=None):
+    """
+    set random input onset if needed
+    set background firing with homogenenous Poisson processes
+    set random jitter in input spike sequences or set deterministic sequence
+    convolve the binary vector with exponential decay (synaptic time constant)
+    """
+    
+    'set random input onset'
+    if par.onset == 1: timing += onset
+    'set background firing'
+    if par.freq_noise == 1:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
+        for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
+    else:
+        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
+    'set jitter'
+    if par.jitter_noise == 1:
+         for b in range(par.batch):
+             
+             timing_err = np.array(timing) + \
+                             np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
+             x_data[b,timing_err.tolist(),range(len(timing))] = 1
+    else:
+        x_data[:,timing,range(par.N)] = 1
+    'synaptic time constant'
+    filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+    x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
+                         padding=par.T,groups=par.N)[:,:,1:par.T+1]
+    
+    return x_data.permute(0,2,1)
+
+def get_sequence_NumPy(par,timing,onset=None):
+    """
+    set random input onset if needed
+    set background firing with homogenenous Poisson processes
+    set random jitter in input spike sequences or set deterministic sequence
+    convolve the binary vector with exponential decay (synaptic time constant)
+    """
+    
+    'set random input onset'
+    if par.onset == 1: timing = timing.copy() + onset
+    'set background firing'
+    if par.freq_noise == 1:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+        x_data = np.zeros((par.N,par.T))
+        for n in range(par.N): x_data[n,:][np.random.rand(par.T)<prob[n]] = 1        
+    else: x_data = np.zeros((par.N,par.T))
+    'set jitter'        
+    if par.jitter_noise == 1:
+        timing_err = np.array(timing) \
+                        + np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
+        x_data[range(par.N_seq),timing_err.astype(int).tolist()] = 1
+    else: x_data[range(par.N_seq),timing] = 1
+    'synaptic time constant'
+    for n in range(par.N):
+        x_data[n,:] = np.convolve(x_data[n,:],
+                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
+        
+    return x_data
+
+def get_firing_rate_PyTorch(par,x,Dt=1):
+    """
+    compute pre-syn population firing rate 
+    define number of bins and bin size
+    estimate firing rate of pre-synaptic population
+    """
     
     bins, bin = int(par.T*par.dt/Dt), int(Dt/par.dt)
     fr = []
@@ -31,53 +99,47 @@ def get_firing_rate(par,x,Dt=1):
     
     return np.array(fr)
 
-def get_sequence(par,timing,onset=None):
+'----------------------------------------------------------------------------------------'
+'get sequence for STDP protocols'
+
+def get_sequence_stdp(par,timing):
+    """
+    create simple sequence with deterministic spike times 
+    to reproduce STDP exps
+    """
     
-    if par.onset == True: timing += onset
+    x_data = np.zeros((par.N,par.T))
+    for n in range(par.N):
+        x_data[n,timing[n]]= 1
+        x_data[n,:] = np.convolve(x_data[n,:],
+                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
         
-    if par.freq_noise == True:
-        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
-        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-        for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
-    else:
-        x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-        
-    if par.jitter_noise == True:
-         for b in range(par.batch):
-             
-             timing_err = np.array(timing) + \
-                             np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
-             x_data[b,timing_err.tolist(),range(len(timing))] = 1
-    else:
-        x_data[:,timing,range(len(timing))] = 1
-    
-    'synaptic time constant'
-    filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
-                                for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
-    x_data = F.conv1d(x_data.permute(0,2,1),filter.expand(par.N,-1,-1),
-                         padding=par.T,groups=par.N)[:,:,1:par.T+1]
-    
-    return x_data.permute(0,2,1), onset
+    return x_data
+
+'----------------------------------------------------------------------------------------'
+'get multisequence x capacity'
 
 def get_multisequence(par,timing):
+    """
+    set background firing with homogenenous Poisson processes
+    set random jitter in input spike sequences or set deterministic sequence
+    convolve the binary vector with exponential decay (synaptic time constant)
+    """
     
-    if par.freq_noise == True:
+    'set background firing'
+    if par.freq_noise == 1:
         prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
-        # setting all background firing to the same Poisson firing rate
-        # prob = ((par.freq*par.dt)/1000)*torch.ones(par.N)
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
         for n in range(par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
     else:
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-    
-    'create sequence' 
+    'set jitter'    
     for b in range(par.batch):
-        if par.jitter_noise == True:
+        if par.jitter_noise == 1:
             timing_err = np.array(timing[b]) + \
                             (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
             x_data[b,timing_err,par.N_subseq[b]] = 1
-        else: x_data[b,timing[b],par.N_subseq[b]] = 1
-        
+        else: x_data[b,timing[b],par.N_subseq[b]] = 1    
     'synaptic time constant'
     filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
                                 for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
@@ -86,18 +148,189 @@ def get_multisequence(par,timing):
 
     return x_data.permute(0,2,1)
 
-def get_sequence_rhythms(par,timing,onset=None):
+def get_multisequence_NumPy(par,timing):
+    """
+    set background firing with homogenenous Poisson processes
+    set random jitter in input spike sequences or set deterministic sequence
+    convolve the binary vector with exponential decay (synaptic time constant)
+    """
     
-    if par.onset == True: timing += onset
+    'set background firing'
+    if par.freq_noise == 1:
+        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+        x_data = np.zeros((par.N,par.T))
+        for n in range(par.N): x_data[n,:][np.random.rand(par.T)<prob[n]] = 1        
+    else: x_data = np.zeros((par.N,par.T))
+    'set jitter' 
+    for b in range(par.batch):
+        if par.jitter_noise == 1:
+            timing_err = timing[b]  \
+                           + (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
+            x_data[par.N_subseq[b].astype(int),(timing_err).astype(int)] = 1
+        else: x_data[par.N_subseq[b],(timing_err).astype(int)] = 1        
+    'synaptic time constant'
+    for n in range(par.N):
+        x_data[n,:] = np.convolve(x_data[n,:],
+                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
         
-    if par.freq_noise == True:
+    return x_data
+
+'----------------------------------------------------------------------------------------'
+'get sequence neural network with trainable recurrent connections'
+
+def get_sequence_nn_selforg(par,timing):
+    """
+    create list of input data and stack along the nn dimension at the last step
+    for each input data:
+        - set background firing with homogenenous Poisson processes
+        - set random jitter in input spike sequences or set deterministic sequence
+        - convolve the binary vector with exponential decay (synaptic time constant)
+    """
+    
+    x_data  = []
+    for n in range(par.nn):
+        'add background firing'         
+        if par.freq_noise == True:
+            prob = (np.random.randint(0,par.freq,par.n_in)*par.dt)/1000
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+            for nin in range(par.n_in): x[:,:,nin][torch.rand(par.batch,par.T).to(par.device)<prob[nin]] = 1        
+        else:
+            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
+        'create sequence + jitter' 
+        for b in range(par.batch):
+            if par.jitter_noise == True:
+                timing_err = np.array(timing[n][b]) \
+                              +  np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt
+                x[b,timing_err,range(par.n_in)] = 1
+            else: x[b,timing[n][b],range(par.n_in)] = 1
+        'filtering'
+        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
+                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
+            
+        'add to total input'
+        x_data.append(x.permute(0,2,1))
+
+    return torch.stack(x_data,dim=3)
+
+def get_sequence_nn_selforg_NumPy(par,timing):
+    """
+    create list of input data and stack along the nn dimension at the last step
+    for each input data:
+        - set background firing with homogenenous Poisson processes
+        - set random jitter in input spike sequences or set deterministic sequence
+        - convolve the binary vector with exponential decay (synaptic time constant)
+    """
+    
+    x_data  = []
+    for n in range(par.nn):
+        'add background firing'         
+        if par.freq_noise == True:
+            prob = (np.random.randint(0,par.freq,par.n_in)*par.dt)/1000
+            x = np.zeros((par.n_in,par.T))
+            for nin in range(par.n_in): x[nin,:][np.random.rand(par.T)<prob[nin]] = 1        
+        else:
+            x = np.zeros((par.n_in,par.T))
+        'create sequence + jitter'
+        if par.jitter_noise == True:
+            timing_err = np.array(timing[n]) \
+                          +  (np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt).astype(int)
+            x[range(par.n_in),timing_err] = 1
+        else: x[range(par.n_in),timing[n]] = 1
+        'synaptic time constant'
+        for nin in range(par.n_in):
+            x[nin,:] = np.convolve(x[nin,:],
+                          np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]   
+        'add to total input'
+        x_data.append(x)
+
+    return np.stack(x_data,axis=2)
+
+'----------------------------------------------------------------------------------------'
+'get sequences neural network with inhibition'
+
+def get_multisequence_nn(par,timing):
+    """
+    create list of input data, without stacking
+    for each input data:
+        - set background firing with homogenenous Poisson processes
+        - set random jitter in input spike sequences or set deterministic sequence
+        - convolve the binary vector with exponential decay (synaptic time constant)
+    """
+    
+    x_data  = []
+    for n in range(par.nn):
+        'add background firing'         
+        if par.freq_noise == True:
+            prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+            x = torch.zeros(par.batch,par.T,par.N).to(par.device)     
+            for nin in range(par.N): x[:,:,nin][torch.rand(par.batch,par.T).to(par.device)<prob[nin]] = 1 
+        else:
+            x = torch.zeros(par.batch,par.T,par.N).to(par.device)    
+        'create sequence + jitter' 
+        for b in range(par.batch):
+            if par.jitter_noise == True:
+                timing_err = np.array(timing[n][b]) \
+                              +  np.random.randint(-par.jitter,par.jitter,par.N)/par.dt
+                x[b,timing_err,range(par.N)] = 1
+            else: x[b,timing[n][b],range(par.N)] = 1
+        'filtering'
+        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
+                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
+        x = F.conv1d(x.permute(0,2,1),filter.expand(par.N,-1,-1),
+                          padding=par.T,groups=par.N)[:,:,1:par.T+1]
+        'add to total input'
+        x_data.append(x.permute(0,2,1))
+
+    return x_data
+
+def get_multisequence_nn_NumPy(par,timing):
+    """
+    create list of input data, without stacking
+    for each input data:
+        - set background firing with homogenenous Poisson processes
+        - set random jitter in input spike sequences or set deterministic sequence
+        - convolve the binary vector with exponential decay (synaptic time constant)
+    """
+    
+    x_data  = []
+    for n in range(par.nn):
+        'set background firing'
+        if par.freq_noise == 1:
+            prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
+            x = np.zeros((par.N,par.T))
+            for n in range(par.N): x[n,:][np.random.rand(par.T)<prob[n]] = 1        
+        else: x = np.zeros((par.N,par.T))
+        'set jitter'        
+        if par.jitter_noise == 1:
+            timing_err = np.array(timing) \
+                            + np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
+            x[range(par.N),timing_err.astype(int).tolist()] = 1
+        else: x[range(par.N),timing] = 1
+        'synaptic time constant'
+        for n in range(par.N):
+            x[n,:] = np.convolve(x[n,:],
+                          np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]   
+            'add to total input'
+        x_data.append(x)
+
+    return x_data
+'----------------------------------------------------------------------------------------'
+'get rhythms'
+
+def get_rhythms(par,timing,onset=None):
+    
+    'set background firing'    
+    if par.freq_noise == 1:
         prob = (np.random.randint(0,par.freq,par.N_dist)*par.dt)/1000
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
         for n in range(par.N_seq,par.N): x_data[:,:,n][torch.rand(par.batch,par.T).to(par.device)<prob[n]] = 1        
     else:
         x_data = torch.zeros(par.batch,par.T,par.N).to(par.device)
-        
-    if par.jitter_noise == True:
+    
+    'set jitter' 
+    if par.jitter_noise == 1:
          for b in range(par.batch):
              for n in range(par.N_seq):
              
@@ -116,73 +349,17 @@ def get_sequence_rhythms(par,timing,onset=None):
     
     return x_data.permute(0,2,1), onset
 
-'--------------'
-'get sequence - NumPy version + get sequence for STDP protocols'
-
-def get_sequence_NumPy(par,timing,onset=None):
-    
-    'set random input onset'
-    if par.onset == True: timing = timing.copy() + onset
-    
-    'set background firing'
-    if par.freq_noise == True:
-        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
-        x_data = np.zeros((par.N,par.T))
-        for n in range(par.N): x_data[n,:][np.random.rand(par.T)<prob[n]] = 1        
-    else: x_data = np.zeros((par.N,par.T))
-
-    'set jitter'        
-    if par.jitter_noise == True:
-        timing_err = np.array(timing) \
-                        + np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
-        x_data[range(par.N_seq),timing_err.astype(int).tolist()] = 1
-    else: x_data[range(par.N_seq),timing] = 1
-        
-    'synaptic time constant'
-    for n in range(par.N):
-        x_data[n,:] = np.convolve(x_data[n,:],
-                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
-        
-    return x_data
-
-def get_multisequence_NumPy(par,timing):
-    
-    'set background firing'
-    if par.freq_noise == True:
-        prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
-        x_data = np.zeros((par.N,par.T))
-        for n in range(par.N): x_data[n,:][np.random.rand(par.T)<prob[n]] = 1        
-    else: x_data = np.zeros((par.N,par.T))
-
-    'set jitter' 
-    for b in range(par.batch):
-        if par.jitter_noise == True:
-            timing_err = timing[b]  \
-                           + (np.random.randint(-par.jitter,par.jitter,par.N_sub))/par.dt
-            x_data[par.N_subseq[b].astype(int),(timing_err).astype(int)] = 1
-        else: x_data[par.N_subseq[b],(timing_err).astype(int)] = 1
-        
-    'synaptic time constant'
-    for n in range(par.N):
-        x_data[n,:] = np.convolve(x_data[n,:],
-                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
-        
-    return x_data
-
 def get_rhythms_NumPy(par,timing,onset=None):
     
-    'set random input onset'
-    if par.onset == True: timing = timing.copy() + onset
-    
     'set background firing'
-    if par.freq_noise == True:
+    if par.freq_noise == 1:
         prob = (np.random.randint(0,par.freq,par.N_dist)*par.dt)/1000
         x_data = np.zeros((par.N,par.T))
         for n in range(par.N_dist): x_data[par.N_seq+n,:][np.random.rand(par.T)<prob[n]] = 1        
     else: x_data = np.zeros((par.N,par.T))
 
     'set jitter'        
-    if par.jitter_noise == True:
+    if par.jitter_noise == 1:
         for n in range(par.N_seq):
             
             if np.random.rand() < par.cycle_prob:
@@ -199,123 +376,8 @@ def get_rhythms_NumPy(par,timing,onset=None):
         
     return x_data
 
-def get_sequence_stdp(par,timing):
-    
-    x_data = np.zeros((par.N,par.T))
-    
-    for n in range(par.N):
-        x_data[n,timing[n]]= 1
-        x_data[n,:] = np.convolve(x_data[n,:],
-                      np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]      
-        
-    return x_data
-
-'---------------------------------------------'
-'get sequence neural network with trainable recurrent connections - PyTorch version'
-
-def get_sequence_nn_selforg(par,timing):
-    
-    'loop on neurons in the network'
-    x_data  = []
-    for n in range(par.nn):
-
-        'add background firing'         
-        if par.freq_noise == True:
-            prob = (np.random.randint(0,par.freq,par.n_in)*par.dt)/1000
-            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
-            for nin in range(par.n_in): x[:,:,nin][torch.rand(par.batch,par.T).to(par.device)<prob[nin]] = 1        
-        else:
-            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
-            
-        'create sequence + jitter' 
-        for b in range(par.batch):
-            if par.jitter_noise == True:
-                timing_err = np.array(timing[n][b]) \
-                              +  np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt
-                x[b,timing_err,range(par.n_in)] = 1
-            else: x[b,timing[n][b],range(par.n_in)] = 1
-        
-        'filtering'
-        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
-                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
-        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
-                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
-            
-        'add to total input'
-        x_data.append(x.permute(0,2,1))
-
-    return torch.stack(x_data,dim=3)
-
-'--------------'
-'get sequence neural network with trainable recurrent connections - NumPy version'
-
-def get_sequence_nn_selforg_NumPy(par,timing):
-    
-    'loop on neurons in the network'
-    x_data  = []
-    for n in range(par.nn):
-
-        'add background firing'         
-        if par.freq_noise == True:
-            prob = (np.random.randint(0,par.freq,par.n_in)*par.dt)/1000
-            x = np.zeros((par.n_in,par.T))
-            for nin in range(par.n_in): x[nin,:][np.random.rand(par.T)<prob[nin]] = 1        
-        else:
-            x = np.zeros((par.n_in,par.T))
-            
-        'create sequence + jitter'
-        if par.jitter_noise == True:
-            timing_err = np.array(timing[n]) \
-                          +  (np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt).astype(int)
-            x[range(par.n_in),timing_err] = 1
-        else: x[range(par.n_in),timing[n]] = 1
-        
-        'synaptic time constant'
-        for nin in range(par.n_in):
-            x[nin,:] = np.convolve(x[nin,:],
-                          np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]   
-            
-        'add to total input'
-        x_data.append(x)
-
-    return np.stack(x_data,axis=2)
-
-'---------------------------------------------'
-'get sequences neural network with inhibition - PyTorch version'
-
-def get_multisequence_nn(par,timing):
-    
-    x_data  = []
-    for n in range(par.nn):
-        
-        'add background firing'         
-        if par.freq_noise == True:
-            prob = (np.random.randint(0,par.freq,par.n_in)*par.dt)/1000
-            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)     
-            for nin in range(par.n_in): x[:,:,nin][torch.rand(par.batch,par.T).to(par.device)<prob[nin]] = 1 
-        else:
-            x = torch.zeros(par.batch,par.T,par.n_in).to(par.device)
-            
-        'create sequence + jitter' 
-        for b in range(par.batch):
-            if par.jitter_noise == True:
-                timing_err = np.array(timing[n][b]) \
-                              +  np.random.randint(-par.jitter,par.jitter,par.n_in)/par.dt
-                x[b,timing_err,range(par.n_in)] = 1
-            else: x[b,timing[n][b],range(par.n_in)] = 1
-        
-        'filtering'
-        filter = torch.tensor([(1-par.dt/par.tau_x)**(par.T-i-1) 
-                               for i in range(par.T)]).view(1,1,-1).float().to(par.device) 
-        x = F.conv1d(x.permute(0,2,1),filter.expand(par.n_in,-1,-1),
-                          padding=par.T,groups=par.n_in)[:,:,1:par.T+1]
-            
-        'add to total input'
-        x_data.append(x.permute(0,2,1))
-
-    return torch.stack(x_data,dim=3)
-
-'---------------------------------------------'
+'----------------------------------------------------------------------------------------'
+'----------------------------------------------------------------------------------------'
 
 "auxiliary functions plots"
 
