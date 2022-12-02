@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "main_sequence_NumPy.py"
-single neuron trained on input sequences - Figure 2 (NumPy version)
+single neuron trained on input sequences - Figure 2 (PyTorch version)
 
 Author:
     
