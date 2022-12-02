@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "main_sequence_example.py":
-train the single neuron model on high-dimensional input-spike trains (Figure 2)
+train the single neuron model on high-dimensional input-spike trains - Figure 2
 
 Author:
     
@@ -30,6 +30,13 @@ class MidpointNormalize(colors.Normalize):
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
 from predictive_neuron import models, funs_train
+
+"""
+dynamics of anticipation and predictive plasticity:
+    -initialize NeuronClass (NumPy version) 
+    -initialize synaptic weights to fixed values
+    -train neuron on high-dimensional, stochastic sequences
+"""
 
 par = types.SimpleNamespace()
 
@@ -58,7 +65,15 @@ par.init = 'fixed'
 par.init_mean = 0.1
 par.init_a, par.init_b = 0, .03
 
-'set noise sources'
+"""
+there are three sources of noise for each epoch:
+    1. jitter of the spike times (random jitter between -par.jitter and +par.jitter)
+    2. random background firing following an homogenenous Poisson process with rate
+    distributione between 0 and par.freq 
+    3. another subset of N_dist pre-synaptic neurons that fire randomly according
+    to an homogenenous Poisson process with randomly distribuited rates between
+    0 and par.freq
+"""
 par.noise = 1
 par.upload_data = 0
 par.freq_noise = 1
@@ -70,16 +85,6 @@ par.onset = 1
 par.onset_list = np.random.randint(0,par.T/2,par.epochs)
 
 '---------------------------------------------'
-
-"""
-there are three sources of noise for each epoch:
-    1. jitter of the spike times (random jitter between -par.jitter and +par.jitter)
-    2. random background firing following an homogenenous Poisson process with rate
-    distributione between 0 and par.freq 
-    3. another subset of N_dist pre-synaptic neurons that fire randomly according
-    to an homogenenous Poisson process with randomly distribuited rates between
-    0 and par.freq
-"""
 
 'fix seed'
 np.random.seed(1992)

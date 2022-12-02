@@ -5,7 +5,8 @@ Copyright (C) Vinck Lab
 ----------------------------------------------
 "main_sequences_capacity_example.py":
     
-numerical investigation of the capacity of the model with non-overlapping sequences
+numerical investigation of the capacity of the model with independent
+sequences from non-overlapping synapses (Figre S5)
 
 Author:
     

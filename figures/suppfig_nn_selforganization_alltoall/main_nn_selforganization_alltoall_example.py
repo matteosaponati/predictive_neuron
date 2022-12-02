@@ -5,6 +5,7 @@ Copyright (C) Vinck Lab
 ----------------------------------------------
 "main_nn_selforganization_alltoall_example.py":
 train the neural network model with learnable, all-to-all recurrent connections
+(Figure S7)
 
 Author:
     
@@ -30,6 +31,14 @@ class MidpointNormalize(colors.Normalize):
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
 from predictive_neuron import models, funs_train, funs
+
+"""
+sequence anticipation with self-organizing neural network (all-to-all):
+    -define functions to quantify number of neurons in the network which are 
+    needed to recall the full sequence 
+    -initialize NetworkClass (NumPy version) 
+    -train network or get pre-trained weights across epochs
+"""
 
 par = types.SimpleNamespace()
 

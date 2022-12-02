@@ -4,7 +4,8 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "selforganization_replay.py"
-compute how many neurons are needed for replay
+Quanrification of the number of neurons in the network which are needed for 
+the replay of the full sequence (Figure S6)
 
 Author:
     
@@ -164,8 +165,8 @@ class NetworkClass_Forward():
                  - self.par.v_th*self.z
         self.z = np.zeros(self.par.nn)
         self.z[self.v-self.par.v_th>0] = 1  
-
-
+        
+'---------------------------------------------'
 
 'get weights across epochs'
 w = np.load(os.getcwd()+'/w_nn.npy')

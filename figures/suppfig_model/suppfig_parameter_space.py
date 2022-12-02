@@ -5,7 +5,7 @@ Copyright (C) Vinck Lab
 ----------------------------------------------
 "suppfig_parameter_space.py":
 dynamics of anticipation and predictive plasticity in the (w1,w2) parameter 
-space, for different initial conditions
+space, for different initial conditions (Figure S1)
     
 Author:
     

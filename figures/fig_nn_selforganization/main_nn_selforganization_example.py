@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "main_nn_selforganization_example.py":
-train the neural network model with learnable recurrent connections (Figure 3)
+train the neural network model with learnable recurrent connections - Figure 3
 
 Author:
     
@@ -30,6 +30,14 @@ class MidpointNormalize(colors.Normalize):
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
 from predictive_neuron import funs_train, funs, models
+
+"""
+sequence anticipation with self-organizing neural network (NN connections):
+    -define functions to quantify number of neurons in the network which are 
+    needed to recall the full sequence 
+    -initialize NetworkClass (NumPy version) 
+    -train network or get pre-trained weights across epochs
+"""
 
 par = types.SimpleNamespace()
 
@@ -81,8 +89,6 @@ par.T = int((par.n_in*par.delay + par.n_in*par.Dt + par.jitter + 80)/par.dt)
 quantification of the number of neurons that needs to be activate such that
 the network can recall the whole sequence. We show that the number of neurons 
 required for the recall decreases consistently across epochs. 
-
-During each epoch we use *par.nn* pre-synaptic inputs 
 """
 
 def get_sequence_nn_subseqs(par,timing):
@@ -172,10 +178,6 @@ class NetworkClass_Forward():
         self.z[self.v-self.par.v_th>0] = 1  
 
 '---------------------------------------------'
-
-"""
-write description here
-"""
 
 'a) train the network'
 

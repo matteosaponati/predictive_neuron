@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "main_sequence_noise_examples.py":
-train the single neuron model on high-dimensional input-spike trains (Figure 2)
+Effect of different noise sources in the pre-synaptic sequence (Figure S4)
 
 Author:
     
@@ -68,7 +68,6 @@ par.jitter = 2
 par.T = int(2*(par.Dt*par.N_seq + par.jitter)/par.dt) 
 par.onset = 1
 par.onset_list = np.random.randint(0,par.T/2,par.epochs)
-
 
 '---------------------------------------------'
 'no noise'

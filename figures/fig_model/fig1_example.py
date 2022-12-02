@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "fig1_example.py":
-reproduce the dynamics of anticipation and predictive plasticity of Figure 1
+dynamics of anticipation and predictive plasticity - Figure 1
     
 Author:
     
@@ -22,6 +22,14 @@ plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
 from predictive_neuron import models, funs, funs_train
+
+"""
+dynamics of anticipation and predictive plasticity:
+    -initialize NeuronClass (NumPy version) 
+    -initialize synaptic weights to different values, that is different points
+    in the parameter space
+    - train neuron on deterministic, two inputs sequence with fixed delay
+"""
 
 'set model'
 par = types.SimpleNamespace()
@@ -41,11 +49,7 @@ par.epochs = 300
 timing = (np.array([2.,6.])/par.dt).astype(int)
 x_data = funs.get_sequence_stdp(par,timing)
 
-"""
-dynamics of anticipation and predictive plasticity
-inputs:
-    1. w_0: different set of initial conditions
-"""
+'training'
 w_0 = [.005,.03,.05]
    
 w1_tot, w2_tot = [],[]

@@ -5,7 +5,7 @@ Copyright (C) Vinck Lab
 ----------------------------------------------
 "stdp_classical_control.py"
 reproduce classical anti-symmetrical STDP windows with predictive plasticity
-+ synapse of supra-threshold input is frozen (not subject to plasticity)
++ synapse of supra-threshold input is frozen (Figure S10)
 
 Author:
     

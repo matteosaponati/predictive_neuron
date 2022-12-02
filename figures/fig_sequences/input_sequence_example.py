@@ -19,6 +19,8 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+par = types.SimpleNamespace()
+
 'set input'
 par.sequence = 'deterministic'
 par.Dt = 2

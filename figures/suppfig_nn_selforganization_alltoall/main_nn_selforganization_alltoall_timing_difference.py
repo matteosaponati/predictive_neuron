@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "main_nn_selforganization_alltoall_timing_difference.py":
-difference in network spike times before and after training - Figure 3
+difference in network spike times before and after training (Figure S7)
     
 Author:
     

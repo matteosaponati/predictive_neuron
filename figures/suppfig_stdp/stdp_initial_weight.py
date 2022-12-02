@@ -7,7 +7,7 @@ Copyright (C) Vinck Lab
 'Sjöström et al (2001) Rate, timing, and cooperativity jointly determine cortical 
 synaptic plasticity. Neuron' 
 
-reproduce how STDP potentiation depends on initial weight (Figure 5C)
+reproduce how STDP potentiation depends on initial weight (Figure S9)
 
 Author:
     

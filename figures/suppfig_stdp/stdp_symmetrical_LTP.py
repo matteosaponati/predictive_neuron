@@ -4,7 +4,7 @@ Copyright (C) Vinck Lab
 -add copyright-
 ----------------------------------------------
 "stdp_symmetrical.py"
-reproduce symmetrical STDP windows with predictive plasticity
+reproduce symmetrical STDP windows with predictive plasticity (Figure S8)
 
 Author:
     
