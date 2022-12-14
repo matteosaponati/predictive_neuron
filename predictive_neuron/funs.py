@@ -299,19 +299,23 @@ def get_multisequence_nn_NumPy(par,timing):
         'set background firing'
         if par.freq_noise == 1:
             prob = (np.random.randint(0,par.freq,par.N)*par.dt)/1000
-            x = np.zeros((par.N,par.T))
-            for n in range(par.N): x[n,:][np.random.rand(par.T)<prob[n]] = 1        
-        else: x = np.zeros((par.N,par.T))
-        'set jitter'        
-        if par.jitter_noise == 1:
-            timing_err = np.array(timing) \
-                            + np.random.randint(-par.jitter,par.jitter,len(timing))/par.dt
-            x[range(par.N),timing_err.astype(int).tolist()] = 1
-        else: x[range(par.N),timing] = 1
+            x = np.zeros((par.batch,par.N,par.T))
+            for b in range(par.batch):
+                for nin in range(par.N): x[b,nin,:][np.random.rand(par.T)<prob[nin]] = 1        
+        else: x = np.zeros((par.batch,par.N,par.T))
+        'set jitter'      
+        for b in range(par.batch):
+            if par.jitter_noise == 1:
+                timing_err = timing[n][b] \
+                                + np.random.randint(-par.jitter,par.jitter,
+                                                    len(timing[n][b]))/par.dt
+                x[b,range(par.N),timing_err.astype(int).tolist()] = 1
+            else: x[b,range(par.N),timing[n][b]] = 1
         'synaptic time constant'
-        for n in range(par.N):
-            x[n,:] = np.convolve(x[n,:],
-                          np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]   
+        for b in range(par.batch):
+            for nin in range(par.N):
+                x[b,nin,:] = np.convolve(x[b,nin,:],
+                              np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]   
             'add to total input'
         x_data.append(x)
 
