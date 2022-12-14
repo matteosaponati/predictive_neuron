@@ -164,7 +164,8 @@ def initialize_nn_NumPy(par):
         if par.init == 'fixed':
             network[n].w = par.init_mean*np.ones(par.N)
         'initialize recurrent weights'    
-        network[n].wrec = par.w0_rec*np.ones(par.nn-1)
+        if par.is_rec == 1:
+            network[n].wrec = par.w0_rec*np.ones(par.nn-1)
     
     return network
 
@@ -174,24 +175,39 @@ def forward_nn_NumPy(par,network,x):
     update the state variables at each timestep t and save values in lists
     """
     
-#    v = [[] for n in range(par.nn)]
+    v = [[] for n in range(par.nn)]
     z = [[[] for b in range(par.batch)] for n in range(par.nn)]
     'forward pass across time'
     for t in range(par.T):            
         'get voltage at timestep t-1'
-#        for n in range(par.nn):
-#            v[n].append(network[n].v)  
+        for n in range(par.nn):
+            v[n].append(network[n].v)  
+        
+        'get recurrent inputs'
+        z_out = []
+        for n in range(par.nn):
+            z_out.append(np.stack([network[n].z_out
+                                      for k in range(par.nn)
+                                      if k != n],axis=1))
         for n in range(par.nn):
             'update neuron states - forward pass'
-            network[n](x[n][:,t],np.stack([network[n].z_out 
-                                   for k in range(par.nn)
-                                      if k != n],axis=1))
+            network[n](x[n][:,:,t],z_out[n])
             'get output spike at timestep t'
             for b in range(par.batch):
                 if network[n].z[b].item() != 0: z[n][b].append(t*par.dt)    
     
-#    return network, [np.stack(v[n],axis=1) for n in range(par.nn)], z
-    return network, z
+#        for n in range(par.nn):
+#            'update neuron states - forward pass'
+#            network[n](x[n][:,:,t],np.stack([network[n].z_out 
+#                                   for k in range(par.nn)
+#                                      if k != n],axis=1))
+#    
+#            'get output spike at timestep t'
+#            for b in range(par.batch):
+#                if network[n].z[b].item() != 0: z[n][b].append(t*par.dt)    
+    
+    return network, [np.stack(v[n],axis=1) for n in range(par.nn)], z
+#    return network, z
 
 def train_nn_NumPy(par,network,x=None,timing=None):
     """
@@ -203,7 +219,7 @@ def train_nn_NumPy(par,network,x=None,timing=None):
 
     'allocate outputs'
     loss_list, w_list = [], []
-#    v_list, spk_list = [], []       
+    v_list, spk_list = [], []       
     spk_list = []
 
     'train network across epochs'
@@ -218,19 +234,19 @@ def train_nn_NumPy(par,network,x=None,timing=None):
         'initialize neuron state and solve dynamics (forward+backward pass)'
         for n in range(par.nn): 
             network[n].state()
-#        network, v, z = forward_nn_NumPy(par,network,x)
-        network, z = forward_nn_NumPy(par,network,x)
+        network, v, z = forward_nn_NumPy(par,network,x)
+#        network, z = forward_nn_NumPy(par,network,x)
                 
         'save output'
-#        v_list.append(v)
+        v_list.append(v)
         spk_list.append(z)
         w_list.append([network[n].w for n in range(par.nn)])
        
         if e%50 == 0: 
             print('epoch {} out of {}'.format(e,par.epochs))
     
-#    return w_list, v_list, spk_list, loss_list
-    return w_list, spk_list, loss_list
+    return w_list, v_list, spk_list, loss_list
+#    return w_list, spk_list, loss_list
 
 '--------'
 
