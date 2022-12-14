@@ -38,7 +38,7 @@ if __name__ == '__main__':
     parser.add_argument('--init_a',type=float, default=0.)
     parser.add_argument('--init_b',type=float, default=.2)
 
-    parser.add_argument('--epochs', type=int, default=500)
+    parser.add_argument('--epochs', type=int, default=2000)
     parser.add_argument('--seed', type=int, default=1992)
     parser.add_argument('--batch', type=int, default=2)
     parser.add_argument('--rep', type=int, default=1)
@@ -56,9 +56,9 @@ if __name__ == '__main__':
     parser.add_argument('--jitter', type=float, default=2)
     
     'network model'
-    parser.add_argument('--is_rec', type=bool, default=0)
+    parser.add_argument('--is_rec', type=bool, default=1)
     parser.add_argument('--w0_rec', type=float, default=-.05) 
-    parser.add_argument('--dt', type=float, default= .05) 
+    parser.add_argument('--dt', type=float, default= 1.) 
     parser.add_argument('--tau_m', type=float, default= 10.) 
     parser.add_argument('--v_th', type=float, default= 2.)
     parser.add_argument('--eta',type=float, default=4e-5)
@@ -105,14 +105,14 @@ if __name__ == '__main__':
         'get inputs'
         x = funs.get_multisequence_nn_NumPy(par,timing)
         'train network'
-        w,spk,loss = funs_train_inhibition.train_nn_NumPy(par,network,x=x)
+        w,v,spk,loss = funs_train_inhibition.train_nn_NumPy(par,network,x=x)
     
     else: 
-        w,spk,loss = funs_train_inhibition.train_nn_NumPy(par,network,timing=timing)
+        w,v,spk,loss = funs_train_inhibition.train_nn_NumPy(par,network,timing=timing)
         
     np.save(par.save_dir+'w_taum_{}_vth_{}_eta_{}_init_mean_{}_w0_rec_{}_rep_{}'.format(
                             par.tau_m,par.v_th,par.eta,par.init_mean,par.w0_rec,par.rep),w)
-#    np.save(par.save_dir+'v_taum_{}_vth_{}_eta_{}_init_mean_{}_w0_rec_{}_rep_{}'.format(
-#                            par.tau_m,par.v_th,par.eta,par.init_mean,par.w0_rec,par.rep),v)
+    np.save(par.save_dir+'v_taum_{}_vth_{}_eta_{}_init_mean_{}_w0_rec_{}_rep_{}'.format(
+                            par.tau_m,par.v_th,par.eta,par.init_mean,par.w0_rec,par.rep),v)
     np.save(par.save_dir+'spk_taum_{}_vth_{}_eta_{}_init_mean_{}_w0_rec_{}_rep_{}'.format(
                             par.tau_m,par.v_th,par.eta,par.init_mean,par.w0_rec,par.rep),spk)

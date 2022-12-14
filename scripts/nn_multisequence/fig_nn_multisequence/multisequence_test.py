@@ -147,9 +147,9 @@ par = types.SimpleNamespace()
 par.n_in = 100
 par.nn = 10
 par.T = 2000
-par.batch = 3
+par.batch = 2
 par.Dt = 4
-par.epochs = 1000
+par.epochs = 100
 par.device = 'cpu'
 par.dtype = torch.float
 
@@ -182,7 +182,7 @@ x_data = get_pattern_fixed_nn(par,timing)
 
 #%%
 
-plt.imshow(x_data[0,:,:,1].T,aspect='auto')
+plt.imshow(x_data[1,:,:,1].T,aspect='auto')
 plt.yticks(np.arange(par.n_in)[::2],np.arange(1,par.n_in+1)[::2])
 plt.xticks(np.arange(par.T)[::200],np.linspace(0,par.T*par.dt,par.T)[::200].astype(int))
 plt.xlabel('time [ms]')
