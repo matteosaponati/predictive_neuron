@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import torch.nn as nn
+from scipy import stats
 
 class NeuronClassNumPy():
     
@@ -7,36 +9,53 @@ class NeuronClassNumPy():
         
         self.par = par  
         self.alpha = (1-self.par.dt/self.par.tau_m)              
-        self.w = np.zeros(self.par.N)
+
+    def initialize(self):
+
+        if self.par.init == 'trunc_gauss':
+            self.w = stats.truncnorm((self.par.init_a-self.par.init_mean)/(1/np.sqrt(self.par.N)), 
+                              (self.par.init_b-self.par.init_mean)/(1/np.sqrt(self.par.N)), 
+                              loc=self.par.init_mean, scale=1/np.sqrt(self.par.N)).rvs(self.par.N)
+        if self.par.init == 'uniform':
+            self.w = np.random.uniform(0,self.par.init_mean,(self.par.N))
+        if self.par.init == 'fixed':
+            self.w = self.par.init_mean*np.ones(self.par.N)
+        
         
     def state(self):
         
-        self.v = 0
-        self.z = 0
-        self.p = np.zeros(self.par.N)
-        self.epsilon = np.zeros(self.par.N)
-        self.grad = np.zeros(self.par.N)
+        self.v = np.zeros(self.par.batch)
+        self.z = np.zeros(self.par.batch)
+        self.p = np.zeros((self.par.batch,self.par.N))
+        self.epsilon = np.zeros((self.par.batch,self.par.N))
+        self.heterosyn = np.zeros(self.par.batch)
+        self.grad = np.zeros((self.par.batch,self.par.N))
     
     def __call__(self,x):
         
-        self.epsilon =  x - self.w*self.v
-        self.grad = self.v*self.epsilon + np.dot(self.epsilon,self.w)*self.p
+        self.v = self.alpha*self.v + np.einsum('ij,j->i',x,self.w) \
+                    - self.par.v_th*self.z
+        
+        self.z = np.zeros(self.par.batch)
+        self.z[self.v - self.par.v_th > 0] = 1
+    
+    def backward_online(self,x):
+
+        self.epsilon =  x - np.einsum('i,j->ij',self.v,self.w)
+        self.heterosyn = np.einsum('ij,j->i',self.epsilon,self.w)
+        self.grad = - np.einsum('i,ij->ij',self.v,self.epsilon) \
+                    - np.einsum('i,ij->ij', self.heterosyn,self.p)
+        self.p = self.alpha*self.p + x
+    
+    def update_online(self):
         
         if self.par.bound == 'soft':
-            self.w = self.w + self.w*self.par.eta*self.grad
+            self.w = self.w - self.w*self.par.eta*self.grad.mean(axis=0)
         elif self.par.bound == 'hard':
-            self.w = self.w + self.par.eta*self.grad
+            self.w = self.w - self.par.eta*self.grad.mean(axis=0)
             self.w = np.where(self.w<0,np.zeros_like(self.w),self.w)
-        else: self.w = self.w + self.par.eta*self.grad
+        else: self.w = self.w - self.par.eta*self.grad.mean(axis=0)
         
-        self.p = self.alpha*self.p + x
-        
-        self.v = self.alpha*self.v + np.dot(x,self.w) 
-        if self.v-self.par.v_th>0: 
-            self.z = 1
-            self.v = self.v - self.par.v_th
-        else: self.z = 0
-
 '---------------------------------------------------------------------------'
 
 class NeuronClassPyTorch(nn.Module):

@@ -12,17 +12,9 @@ class NetworkClassNumPy():
 
         self.w = np.zeros((self.par.N,self.par.nn))
 
-        if self.par.network_type == 'nearest':
-            self.w[:self.par.n_in,:] = self.par.init_mean*np.ones((self.par.n_in,self.par.nn))
-            self.w[self.par.n_in:,:] = self.par.init_rec*np.ones((2,self.par.nn))
-
-        if self.par.network_type == 'all':
-            self.w[:self.par.n_in,:] = self.par.init_mean*np.ones((self.par.n_in,self.par.nn))
-            self.w[self.par.n_in:,:] = self.par.init_rec*np.ones((self.par.nn,self.par.nn))
-        
-        if self.par.network_type == 'random':
-            self.w[:self.par.N_in,:] = np.random.uniform(0.,self.par.init_mean,(self.par.N_in,self.par.nn))
-            self.w[self.par.N_in:,:] = np.random.uniform(0.,self.par.init_rec,(self.par.nn,self.par.nn))
+        np.random.uniform
+        self.w[:self.par.n_in,:] = self.par.init_mean*np.ones((self.par.n_in,self.par.nn))
+        self.w[self.par.n_in:,:] = self.par.init_rec*np.ones((self.par.nn,self.par.nn))
 
     def state(self):
 
@@ -68,21 +60,6 @@ class NetworkClassNumPy():
         self.z_out = self.beta*self.z_out + self.z
         self.x = np.zeros((self.par.batch,self.par.N,self.par.nn))
         
-        if self.par.network_type == 'nearest':
-
-            for n in range(self.par.nn): 
-                if n == 0:
-                    self.x[:,:,n] = np.concatenate((x[:,:,n],np.array([np.zeros((self.par.batch,1)),
-                                                                    self.z_out[:,n+1]]).T),axis=1)       
-                elif n == self.par.nn-1:
-                    self.x[:,:,n] = np.concatenate((x[:,:,n],np.array([self.z_out[:,n-1],
-                                                                    np.zeros((self.par.batch,1))]).T),axis=1)   
-                else: 
-                    self.x[:,:,n] = np.concatenate((x[:,:,n],np.array([self.z_out[:,n-1],
-                                                                    self.z_out[:,n+1]]).T),axis=1) 
-        
-        else:
-
-            for n in range(self.par.nn):
-                self.x[:,:,n] = np.concatenate((x[:,:,n],np.append(np.delete(self.z_out,n,axis=1),
-                                                                   np.zeros((self.par.batch,1)),axis=1)),axis=1)  
+        for n in range(self.par.nn):
+            self.x[:,:,n] = np.concatenate((x[:,:,n],np.append(np.delete(self.z_out,n,axis=1),
+                                            np.zeros((self.par.batch,1)),axis=1)),axis=1)  
