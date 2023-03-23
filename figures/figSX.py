@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from utils.funs import get_dir_results, get_hyperparameters
-from models.SelfOrgNetworkClass import NetworkClassNumPy
+from models.RandomNetworkClass import NetworkClassNumPy
 from utils.TrainerClassNumPy_SelfOrg import TrainerClass
 
 '-------------------------------'
@@ -21,26 +21,27 @@ if __name__ == "__main__":
     par.bound = 'none'
     par.eta = 1e-6
     par.batch = 1
-    par.epochs = 1000
+    par.epochs = 2000
     
     par.init = 'random'
     par.init_mean = .06
-    par.init_rec = .003
+    par.init_rec = .0003
     
     par.Dt = 2
     par.n_in = 2
     par.nn = 8
     par.delay = 8
+    par.n_afferents = 2
 
     par.freq = 5.
     par.jitter = 1.
 
     par.dt = .05
     par.tau_m = 25.
-    par.v_th = 2.9
+    par.v_th = 3.1
     par.tau_x = 2.
 
-    par.T = int((par.Dt*par.n_in + par.delay*par.nn +  
+    par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
                         par.jitter + 80)/(par.dt))
     
     par.N_in = par.n_in*par.nn
@@ -70,8 +71,8 @@ if __name__ == "__main__":
     par.test_nb = par.batch
         
     network = NetworkClassNumPy(par)
+    network.get_mask()
     network.initialize()
-    print(network.w)
 
     'train'
     trainer = TrainerClass(par,network,train_data,test_data)
