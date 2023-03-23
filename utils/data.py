@@ -8,9 +8,13 @@ def get_spike_times(par):
     if par.name == 'selforg':
 
         if par.network_type == 'random':
-            spk_times = np.linspace(par.Dt/par.dt,(par.Dt/par.dt)*par.N_in,par.N_in,dtype=int)
+            spk_times = np.linspace(par.Dt/par.dt,(par.Dt/par.dt)*par.n_in,par.n_in,dtype=int)
+            spk_times = np.repeat(spk_times[:,np.newaxis],par.nn,axis=1)
+
             delays = int(par.delay/par.dt)*np.arange(par.nn)
-            spk_times += np.repeat(delays,par.n_in)
+            spk_times += np.repeat(delays[np.newaxis,:],par.n_in,axis=0)
+
+            spk_times = spk_times.flatten('F')
             spk_times = np.repeat(spk_times[:,np.newaxis],par.nn,axis=1)
 
         else:

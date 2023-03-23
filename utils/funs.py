@@ -22,15 +22,15 @@ def get_dir_results(par):
         if par.network_type == 'random':
             path = par.dir_output+('{}/{}/{}/n_in_{}_nn_{}_Dt_{}'+
                     '/freq_{}_jitter_{}/'+
-                    'taum_{}_vth_{}_eta_{}/').format(par.package,
+                    'n_afferents_{}_taum_{}_vth_{}_eta_{}/').format(par.package,
                     par.name,par.network_type,par.n_in,par.nn,par.Dt,par.freq,
-                    par.jitter,par.tau_m,par.v_th,
+                    par.jitter,par.n_afferents,par.tau_m,par.v_th,
                     par.eta)
         
         else:
             path = par.dir_output+('{}/{}/{}/n_in_{}_nn_{}_delay_{}_Dt_{}'+
                     '/freq_{}_jitter_{}/'+
-                    'nn_{}_delay_{}_taum_{}_vth_{}_eta_{}/').format(par.package,
+                    'taum_{}_vth_{}_eta_{}/').format(par.package,
                     par.name,par.network_type,par.n_in,par.nn,par.delay,par.Dt,par.freq,
                     par.jitter,par.tau_m,par.v_th,
                     par.eta)

@@ -70,7 +70,6 @@ if __name__ == '__main__':
         
         if par.network_type == 'random':
 
-            #par.T = int(2*(par.Dt*par.n_in + par.jitter)/(par.dt))
             par.T = int((par.Dt*par.n_in + par.delay*par.nn +  
                         par.jitter + 80)/(par.dt))
             par.N_in = par.n_in*par.nn
