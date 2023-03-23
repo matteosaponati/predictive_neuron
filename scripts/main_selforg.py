@@ -24,24 +24,29 @@ def main(path):
 
     if par.package == 'NumPy':
 
-        from models.SelfOrgNetworkClass import NetworkClassNumPy 
-        from utils.TrainerClassNumPy_SelfOrg import TrainerClass
+        if par.network_type == 'random':
 
-        loaddir = ('../_datasets/{}/{}/n_in_{}_nn_{}_Dt_{}/'+
-               'freq_{}_jitter_{}/').format(par.name,par.network_type,par.n_in,par.nn,
-                                            par.Dt,par.freq,par.jitter)
-        
-        train_data = np.load(loaddir+'x_train_{}.npy'.format(par.type))
-        test_data = np.load(loaddir+'x_test_{}.npy'.format(par.type))
-        
-        par.train_nb = int(train_data.shape[0]/par.batch)
-        par.test_nb = int(test_data.shape[0]/par.batch)
-        
-        network = NetworkClassNumPy()
+            from models.RandomNetworkClass import NetworkClassNumPy 
+            from utils.TrainerClassNumPy_SelfOrg import TrainerClass
 
-        'train'
-        trainer = TrainerClass(par,network,train_data,test_data)
-        trainer.train(log)
+            loaddir = ('../_datasets/{}/{}/n_in_{}_nn_{}_Dt_{}/').format(par.name,par.network_type,
+                                                                         par.n_in,par.nn,par.Dt) + \
+                    'freq_{}_jitter_{}/'.format(par.freq,par.jitter)
+        
+            train_data = np.load(loaddir+'x_train_{}.npy'.format(par.type))
+            test_data = np.load(loaddir+'x_test_{}.npy'.format(par.type))
+        
+            ## complete online training: one example per batch
+            par.train_nb = par.batch
+            par.test_nb = par.batch
+            
+            network = NetworkClassNumPy()
+            network.get_mask()
+            network.initialize()
+            
+            'train'
+            trainer = TrainerClass(par,network,train_data,test_data)
+            trainer.train(log)
 
     if par.package == 'PyTorch':
         
