@@ -5,7 +5,6 @@ import numpy as np
 import torch
 
 from utils.funs import get_Namespace_hyperparameters
-from utils.data import SequencesDataset, prepare_dataloader
 
 '-----------------------------------------------------------------------------'
 
@@ -33,14 +32,16 @@ def main(path):
                                                                          par.n_in,par.nn,par.Dt) + \
                     'freq_{}_jitter_{}/'.format(par.freq,par.jitter)
         
-            train_data = np.load(loaddir+'x_train_{}.npy'.format(par.type))
-            test_data = np.load(loaddir+'x_test_{}.npy'.format(par.type))
+            train_data = np.load(loaddir+'x_train.npy')
+            test_data = np.load(loaddir+'x_test.npy')
+            
+            print(test_data.shape)
         
             ## complete online training: one example per batch
             par.train_nb = par.batch
             par.test_nb = par.batch
             
-            network = NetworkClassNumPy()
+            network = NetworkClassNumPy(par)
             network.get_mask()
             network.initialize()
             
@@ -81,7 +82,6 @@ def main(path):
     np.save(path+'loss_train',trainer.losstrainList)
     np.save(path+'loss_test',trainer.losstestList)
     np.save(path+'v',trainer.vList)
-    np.save(path+'fr',trainer.frList)
     np.save(path+'z',trainer.zList)
     np.save(path+'w',trainer.w)
 

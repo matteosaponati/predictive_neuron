@@ -13,13 +13,15 @@ class NetworkClassNumPy():
         self.mask = np.zeros((self.par.N,self.par.nn),dtype=bool)
         self.mask[self.par.N_in:,:] = True
         
+        choice = np.arange(self.par.nn)
+        
         for n in range(self.par.nn):
 
-            choice = np.random.choice(self.par.n_in*np.arange(self.par.nn),
-                         self.par.n_afferents) 
+            #choice = np.random.choice(self.par.n_in*np.arange(self.par.nn),
+                         #self.par.n_afferents) 
             
-            self.mask[choice,n] = True
-            self.mask[choice+1,n] = True
+            self.mask[choice[n],n] = True
+            self.mask[choice[n]+1,n] = True
 
     def initialize(self):
 

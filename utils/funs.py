@@ -78,6 +78,7 @@ def get_Namespace_hyperparameters(args):
     par.network_type = args['network_type']
     par.n_in = args['n_in']
     par.delay = args['delay']
+    par.n_afferents = args['n_afferents']
     
     par.freq = args['freq']
     par.jitter = args['jitter']
@@ -117,7 +118,8 @@ def get_Namespace_hyperparameters(args):
         if par.network_type == 'random':
 
             par.T = int(2*(par.Dt*par.n_in + par.jitter)/(par.dt))
-            par.N = par.n_in+par.nn
+            par.N_in = par.n_in*par.nn
+            par.N = par.N_in+par.nn
         
     return par
 
