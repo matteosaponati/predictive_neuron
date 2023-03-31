@@ -111,7 +111,7 @@ def get_dataset_selforg(par,spk_times):
                 'add inputs only to selected neurons'
                 if nn in range(par.subseq):    
                     x[b,n,nn,spk_times[b,n,nn]] = 1
-                x[b,n,nn,:] = np.convolve(x[b,n,nn,:],np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]  
+                    x[b,n,nn,:] = np.convolve(x[b,n,nn,:],np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]  
     
     return x
 

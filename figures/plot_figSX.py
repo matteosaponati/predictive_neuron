@@ -29,17 +29,17 @@ par.package = 'NumPy'
 par.bound = 'none'
 par.eta = 1e-6
 par.batch = 1
-par.epochs = 1000
+par.epochs = 2000
     
 par.init = 'random'
-par.init_mean = .06
+par.init_mean = .02
 par.init_rec = .0003
     
 par.Dt = 2
 par.n_in = 2
 par.nn = 8
 par.delay = 8
-par.n_afferents = 2
+par.n_afferents = 3
 
 par.freq = 5.
 par.jitter = 1.
@@ -48,6 +48,8 @@ par.dt = .05
 par.tau_m = 25.
 par.v_th = 3.1
 par.tau_x = 2.
+
+par.rep = 1
 
 par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
                         par.jitter + 80)/(par.dt))
@@ -62,6 +64,7 @@ par.dir_output = '../_results/'
 path = get_dir_results(par)
 
 w = np.load(path+'w.npy')
+mask = np.load(path+'mask.npy')
 
 hex_list = ['#33A1C9','#FFFAF0','#7D26CD']
 fig = plt.figure(figsize=(6,6), dpi=300)    
@@ -90,7 +93,7 @@ from utils.TrainerClassNumPy_SelfOrg import TrainerClass
 
 spk_times = get_spike_times(par)
 
-def get_dataset_random(par,spk_times):
+def get_dataset_random(par,spk_times,mask):
 
     x = np.zeros((par.batch,par.N_in,par.nn,par.T))
 
@@ -107,61 +110,36 @@ def get_dataset_random(par,spk_times):
         spk_times += np.repeat(jitter[:,:,np.newaxis],par.nn,axis=2)
     
     for b in range(par.batch):
-        for nn in range(par.nn):
+
+        if par.subseq == 1:
+             
+             for nn in range(par.nn):
+                  for i in par.input_range:
+                        if mask[i,nn] == True:
+                       
+                            x[b,i,nn,spk_times[b,0,nn]] = 1
+                            x[b,i,nn,:] = np.convolve(x[b,i,nn,:],np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T] 
+
+                            x[b,i+1,nn,spk_times[b,1,nn]] = 1
+                            x[b,i+1,nn,:] = np.convolve(x[b,i+1,nn,:],np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T] 
+
+        else:
             for n in range(par.N_in):
-
-                if n in range(par.subseq):     
+                for nn in range(par.nn):
                     x[b,n,nn,spk_times[b,n,nn]] = 1
-                x[b,n,nn,:] = np.convolve(x[b,n,nn,:],np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]  
-    
+                    x[b,n,nn,:] = np.convolve(x[b,n,nn,:],np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]  
+            
     return x
-
 
 '-----------------------------'
 'before'
-par.subseq, par.epochs = 8, 1
+par.subseq, par.epochs = 1, 1
+par.input_range = [0,2]
 par.freq = 5.
 par.jitter = 1.
-x = get_dataset_random(par,spk_times)
 
-train_data = get_dataset_random(par,spk_times)
-test_data = get_dataset_random(par,spk_times)
-        
-par.train_nb = par.batch
-par.test_nb = par.batch
-        
-network = NetworkClassNumPy(par)
-network.initialize()
-network.w = w[0,:]
-
-trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _, _ = trainer._do_test()
-
-zPlot = []
-for n in range(par.nn):
-     zPlot.append((np.where(z[0][0][n,:])[0]*par.dt).tolist())
-
-fig = plt.figure(figsize=(5,3), dpi=300)
-m=1
-for n in range(par.nn):
-    plt.eventplot(zPlot[n],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
-    m+=1
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.ylim(1,par.nn+1)
-plt.xlim(0,par.T*par.dt)
-plt.yticks(range(par.nn+2)[::2])
-plt.xlabel('time [ms]')
-plt.ylabel('neurons')
-plt.savefig('plots/figSX_b_before.pdf',format='pdf', dpi=300)
-plt.close('all') 
- 
-'-----------------------------'
-'learning'
-par.subseq, par.epochs = par.N_in, 1
-x = get_dataset_random(par,spk_times)
-
-train_data = get_dataset_random(par,spk_times)
-test_data = get_dataset_random(par,spk_times)
+train_data = get_dataset_random(par,spk_times,mask)
+test_data = get_dataset_random(par,spk_times,mask)
         
 par.train_nb = par.batch
 par.test_nb = par.batch
@@ -188,16 +166,52 @@ plt.xlim(0,par.T*par.dt)
 plt.yticks(range(par.nn+2)[::2])
 plt.xlabel('time [ms]')
 plt.ylabel('neurons')
+plt.savefig('plots/figSX_b_before.pdf',format='pdf', dpi=300)
+plt.close('all') 
+ 
+'-----------------------------'
+'learning'
+par.subseq, par.epochs = par.N_in, 1
+par.input_range = [0,2]
+
+train_data = get_dataset_random(par,spk_times,mask)
+test_data = get_dataset_random(par,spk_times,mask)
+        
+par.train_nb = par.batch
+par.test_nb = par.batch
+        
+network = NetworkClassNumPy(par)
+network.initialize()
+network.w = w[1000,:]
+
+trainer = TrainerClass(par,network,test_data,test_data)
+_, _, z, _, _ = trainer._do_test()
+
+zPlot = []
+for n in range(par.nn):
+     zPlot.append((np.where(z[0][0][n,:])[0]*par.dt).tolist())
+
+fig = plt.figure(figsize=(5,3), dpi=300)
+m=1
+for n in range(par.nn):
+    plt.eventplot(zPlot[n],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
+    m+=1
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.ylim(1,par.nn+1)
+plt.xlim(0,par.T*par.dt)
+plt.yticks(range(par.nn+2)[::2])
+plt.xlabel('time [ms]')
+plt.ylabel('neurons')
 plt.savefig('plots/figSX_b_learning.pdf',format='pdf', dpi=300)
 plt.close('all') 
 
 '-----------------------------'
 'after'
-par.subseq, par.epochs = 8, 1
-x = get_dataset_random(par,spk_times)
+par.subseq, par.epochs = 1, 1
+par.input_range = [0,2]
 
-train_data = get_dataset_random(par,spk_times)
-test_data = get_dataset_random(par,spk_times)
+train_data = get_dataset_random(par,spk_times,mask)
+test_data = get_dataset_random(par,spk_times,mask)
         
 par.train_nb = par.batch
 par.test_nb = par.batch
@@ -229,11 +243,11 @@ plt.close('all')
 
 '-----------------------------'
 'after spontaneous'
-par.subseq, par.epochs = 8, 1
-x = get_dataset_random(par,spk_times)
+par.subseq, par.epochs = 1, 1
+par.input_range = [0,2]
 
-train_data = get_dataset_random(par,spk_times)
-test_data = get_dataset_random(par,spk_times)
+train_data = get_dataset_random(par,spk_times,mask)
+test_data = get_dataset_random(par,spk_times,mask)
         
 par.train_nb = par.batch
 par.test_nb = par.batch
