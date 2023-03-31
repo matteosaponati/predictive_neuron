@@ -115,10 +115,12 @@ class TrainerClass:
 
         for b in range(self.par.batch):
 
-            if np.where(z[b,-1,:])[0] != []:
-                activity[b] += np.where(z[b,-1,:])[0][0]
-            if np.where(z[b,0,:])[0] != []:
-                activity[b] -= np.where(z[b,0,:])[0][0]
+            if np.where(z[b,:,:])[1] != []:
+
+                first_spk = np.where(z[b,:,:])[1].max()*self.par.dt
+                last_spk = np.where(z[b,:,:])[1].max()*self.par.dt
+                
+                activity[b] = last_spk-first_spk 
 
         return activity
     

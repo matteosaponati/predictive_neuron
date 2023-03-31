@@ -26,8 +26,17 @@ class NetworkClassNumPy():
     def initialize(self):
 
         self.w = np.zeros((self.par.N,self.par.nn))
-        self.w[:self.par.N_in,:] = self.par.init_mean*np.ones((self.par.N_in,self.par.nn))
-        self.w[self.par.N_in:,:] = self.par.init_rec*np.ones((self.par.nn,self.par.nn))
+        
+        if self.par.init == 'fixed':
+            self.w[:self.par.N_in,:] = self.par.init_mean*np.ones((self.par.N_in,self.par.nn))
+            self.w[self.par.N_in:,:] = self.par.init_rec*np.ones((self.par.nn,self.par.nn))
+
+        if self.par.init == 'random':
+            self.w[:self.par.N_in,:] = np.random.uniform(self.par.init_mean-.02,
+                                                         self.par.init_mean+.02,
+                                                         (self.par.N_in,self.par.nn))
+            self.w[self.par.N_in:,:] = self.par.init_rec*np.ones((self.par.nn,self.par.nn))
+
 
     def state(self):
 
