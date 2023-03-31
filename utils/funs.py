@@ -117,7 +117,8 @@ def get_Namespace_hyperparameters(args):
 
         if par.network_type == 'random':
 
-            par.T = int(2*(par.Dt*par.n_in + par.jitter)/(par.dt))
+            par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
+                     par.jitter + 80)/(par.dt))
             par.N_in = par.n_in*par.nn
             par.N = par.N_in+par.nn
         

@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
     par.bound = 'none'
     par.eta = 1e-6
-    par.batch = 50
+    par.batch = 1
     par.epochs = 2000
     
     par.init = 'random'
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     par.v_th = 2.9
     par.tau_x = 2.
 
-    par.rep = 2
+    par.rep = 1
 
     par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
                         par.jitter + 80)/(par.dt))
@@ -69,13 +69,16 @@ if __name__ == "__main__":
     test_data = np.load(loaddir+'x_test.npy')
         
     ## complete online training: one example per batch
-    par.train_nb = int(train_data.shape[0]/par.batch)
-    par.test_nb = int(train_data.shape[0]/par.batch)
-    
+    par.train_nb = par.batch
+    par.test_nb = par.batch
+        
     network = NetworkClassNumPy(par)
     network.get_mask()
     network.initialize()
 
+    print(network.w.shape)
+    print(par.T)
+    
     'train'
     trainer = TrainerClass(par,network,train_data,test_data)
     trainer.train(log)

@@ -34,8 +34,6 @@ def main(path):
         
             train_data = np.load(loaddir+'x_train.npy')
             test_data = np.load(loaddir+'x_test.npy')
-            
-            print(test_data.shape)
         
             ## complete online training: one example per batch
             par.train_nb = par.batch
@@ -44,6 +42,9 @@ def main(path):
             network = NetworkClassNumPy(par)
             network.get_mask()
             network.initialize()
+
+            print(network.w.shape)
+            print(par.T)
             
             'train'
             trainer = TrainerClass(par,network,train_data,test_data)

@@ -51,6 +51,7 @@ if __name__ == "__main__":
                         choices = ['nearest','all','random'],default='nearest')
     parser.add_argument('--n_in', type=int, default=100)
     parser.add_argument('--delay', type=int, default=2)
+    parser.add_argument('--n_afferents', type=int, default=1)
     
     parser.add_argument('--freq', type=float, default=10.)
     parser.add_argument('--jitter', type=float, default=2.)
