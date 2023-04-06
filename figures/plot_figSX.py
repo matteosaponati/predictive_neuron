@@ -16,6 +16,8 @@ class MidpointNormalize(colors.Normalize):
 from utils.funs import get_dir_results, get_continuous_cmap
 from utils.data import get_spike_times
 
+from scipy import stats
+
 '-----------------------------------------'
 
 parser = argparse.ArgumentParser()
@@ -29,10 +31,10 @@ par.package = 'NumPy'
 par.bound = 'none'
 par.eta = 1e-6
 par.batch = 1
-par.epochs = 2000
+par.epochs = 3000
     
 par.init = 'random'
-par.init_mean = .02
+par.init_mean = .06
 par.init_rec = .0003
     
 par.Dt = 2
@@ -49,7 +51,7 @@ par.tau_m = 25.
 par.v_th = 3.1
 par.tau_x = 2.
 
-par.rep = 1
+par.rep = 3
 
 par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
                         par.jitter + 80)/(par.dt))
@@ -63,14 +65,46 @@ par.dir_output = '../_results/'
 
 path = get_dir_results(par)
 
+
+time = np.zeros((50,par.epochs))
+for r, par.rep in enumerate(range(50)):
+    
+    path = get_dir_results(par)
+    
+    z = np.load(path+'z.npy')
+
+    for b in range(par.epochs):
+        
+        if len(np.where(z[b,0,0,:,:])[1]) >0:
+
+            first_spk = np.where(z[b,0,0,:,:])[1].min()*par.dt
+            last_spk = np.where(z[b,0,0,:,:])[1].max()*par.dt
+        
+            time[r,b] = last_spk-first_spk
+
+print(time)
+fig = plt.figure(figsize=(4,6),dpi=300)
+plt.plot(time.mean(axis=0),color='purple')
+plt.fill_between(range(par.epochs),time.mean(axis=0)-stats.sem(time,axis=0),time.mean(axis=0)+stats.sem(time,axis=0),
+                 color='purple',alpha=.3)
+plt.xlabel('epochs')
+plt.ylabel(r'$\Delta t$ [ms]')
+plt.savefig('plots/test.pdf',format='pdf',dpi=300)
+
+print('done')
+
+par.rep = 21
+path = get_dir_results(par)
+
+
 w = np.load(path+'w.npy')
 mask = np.load(path+'mask.npy')
 
 hex_list = ['#33A1C9','#FFFAF0','#7D26CD']
 fig = plt.figure(figsize=(6,6), dpi=300)    
 
-divnorm = colors.TwoSlopeNorm(vmin=w[-1,:].min(),vcenter=0, vmax=w[-1,:].max())
-plt.imshow(w[-1,:],cmap=get_continuous_cmap(hex_list), norm=divnorm,aspect='auto')
+divnorm = colors.DivergingNorm(vmin=w[-1,:].min(),vcenter=0, vmax=w[-1,:].max())
+plt.imshow(w[-1,:],cmap=get_continuous_cmap(hex_list),norm=divnorm,aspect='auto')
 
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.colorbar()
@@ -79,6 +113,18 @@ plt.ylabel(r'inputs')
 plt.xlabel(r'neurons')
 plt.savefig('plots/figSX_c.pdf',format='pdf', dpi=300)
 plt.close('all')
+
+fig = plt.figure(figsize=(6,6),dpi=300)
+
+plt.imshow(w[0,:],cmap=get_continuous_cmap(hex_list),norm=divnorm,aspect='auto')
+fig.tight_layout(rect=[0,0.01,1,0.97])
+plt.colorbar()
+plt.title(r'$\vec{w}$')
+plt.ylabel(r'inputs')
+plt.xlabel(r'neurons')
+plt.savefig('plots/figSX_c_beginning.pdf',format='pdf',dpi=300)
+plt.close('all')
+
 
 '-----------------------------------------'
 
@@ -146,18 +192,28 @@ par.test_nb = par.batch
         
 network = NetworkClassNumPy(par)
 network.initialize()
-network.w = w[100,:]
+network.w = w[0,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
 _, _, z, _, _ = trainer._do_test()
 
 zPlot = []
+zList = []
 for n in range(par.nn):
+    
      zPlot.append((np.where(z[0][0][n,:])[0]*par.dt).tolist())
+     
+     if np.where(z[0][0][n,:]) != [] and len(np.where(z[0][0][n,:])[0]) > 0:
+         zList.append(np.where(z[0][0][n,:])[0][0]*par.dt)
+     
+     else: 
+         zList.append(par.T*par.dt)
+     
+zList = np.argsort(zList)
 
 fig = plt.figure(figsize=(5,3), dpi=300)
 m=1
-for n in range(par.nn):
+for n in zList:
     plt.eventplot(zPlot[n],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
     m+=1
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
@@ -182,18 +238,28 @@ par.test_nb = par.batch
         
 network = NetworkClassNumPy(par)
 network.initialize()
-network.w = w[1000,:]
+network.w = w[10,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
 _, _, z, _, _ = trainer._do_test()
 
 zPlot = []
+zList = []
 for n in range(par.nn):
+    
      zPlot.append((np.where(z[0][0][n,:])[0]*par.dt).tolist())
+     
+     if np.where(z[0][0][n,:]) != [] and len(np.where(z[0][0][n,:])[0]) > 0:
+         zList.append(np.where(z[0][0][n,:])[0][0]*par.dt)
+     
+     else: 
+         zList.append(par.T*par.dt)
+     
+zList = np.argsort(zList)
 
 fig = plt.figure(figsize=(5,3), dpi=300)
 m=1
-for n in range(par.nn):
+for n in zList:
     plt.eventplot(zPlot[n],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
     m+=1
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
@@ -218,18 +284,29 @@ par.test_nb = par.batch
         
 network = NetworkClassNumPy(par)
 network.initialize()
-network.w = w[-50,:]
+network.w = w[-1,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
 _, _, z, _, _ = trainer._do_test()
 
 zPlot = []
+zList = []
 for n in range(par.nn):
+    
      zPlot.append((np.where(z[0][0][n,:])[0]*par.dt).tolist())
+     
+     if np.where(z[0][0][n,:]) != [] and len(np.where(z[0][0][n,:])[0]) > 0:
+         zList.append(np.where(z[0][0][n,:])[0][0]*par.dt)
+     
+     else: 
+         zList.append(par.T*par.dt)
+
+zList = np.argsort(zList)
 
 fig = plt.figure(figsize=(5,3), dpi=300)
 m=1
-for n in range(par.nn):
+for n in zList:
+    print(n)
     plt.eventplot(zPlot[n],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
     m+=1
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
@@ -259,13 +336,24 @@ network.w = w[-1,:]
 trainer = TrainerClass(par,network,test_data,test_data)
 _, _, z, _, _ = trainer._do_test()
 
+
 zPlot = []
+zList = []
 for n in range(par.nn):
+    
      zPlot.append((np.where(z[0][0][n,:])[0]*par.dt).tolist())
+     
+     if np.where(z[0][0][n,:]) != [] and len(np.where(z[0][0][n,:])[0]) > 0:
+         zList.append(np.where(z[0][0][n,:])[0][0]*par.dt)
+     
+     else: 
+         zList.append(par.T*par.dt)
+
+zList = np.argsort(zList)
 
 fig = plt.figure(figsize=(5,3), dpi=300)
 m=1
-for n in range(par.nn):
+for n in zList:
     plt.eventplot(zPlot[n],lineoffsets = m,linelengths = 1,linewidths = 3,colors = 'rebeccapurple')
     m+=1
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
@@ -276,3 +364,67 @@ plt.xlabel('time [ms]')
 plt.ylabel('neurons')
 plt.savefig('plots/figSX_b_spontaneous.pdf',format='pdf', dpi=300)
 plt.close('all') 
+
+
+w = np.load(path+'w.npy')
+mask = np.load(path+'mask.npy')
+
+
+'learning'
+par.subseq, par.epochs = par.N_in, 1
+par.input_range = [0,2]
+
+train_data = get_dataset_random(par,spk_times,mask)
+test_data = get_dataset_random(par,spk_times,mask)
+        
+par.train_nb = par.batch
+par.test_nb = par.batch
+        
+network = NetworkClassNumPy(par)
+network.initialize()
+network.w = w[-1,:]
+
+trainer = TrainerClass(par,network,test_data,test_data)
+_, _, z, _, _ = trainer._do_test()
+
+zPlot = []
+zList = []
+for n in range(par.nn):
+    
+     zPlot.append((np.where(z[0][0][n,:])[0]*par.dt).tolist())
+     
+     if np.where(z[0][0][n,:]) != [] and len(np.where(z[0][0][n,:])[0]) > 0:
+         zList.append(np.where(z[0][0][n,:])[0][0]*par.dt)
+     
+     else: 
+         zList.append(par.T*par.dt)
+
+zList = np.argsort(zList)
+
+hex_list = ['#33A1C9','#FFFAF0','#7D26CD']
+fig = plt.figure(figsize=(6,6), dpi=300)    
+
+divnorm = colors.DivergingNorm(vmin=w[-1,:].min(),vcenter=0, vmax=w[-1,:].max())
+plt.imshow(w[-1,:,zList].T,cmap=get_continuous_cmap(hex_list),norm=divnorm,aspect='auto')
+
+print(w[-1,:,zList].shape)
+print(w[-1,:].shape)
+
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.colorbar()
+plt.title(r'$\vec{w}$')
+plt.ylabel(r'inputs')
+plt.xlabel(r'neurons')
+plt.savefig('plots/figSX_c.pdf',format='pdf', dpi=300)
+plt.close('all')
+
+fig = plt.figure(figsize=(6,6),dpi=300)
+
+plt.imshow(w[0,:,zList].T,cmap=get_continuous_cmap(hex_list),norm=divnorm,aspect='auto')
+fig.tight_layout(rect=[0,0.01,1,0.97])
+plt.colorbar()
+plt.title(r'$\vec{w}$')
+plt.ylabel(r'inputs')
+plt.xlabel(r'neurons')
+plt.savefig('plots/figSX_c_beginning.pdf',format='pdf',dpi=300)
+plt.close('all')

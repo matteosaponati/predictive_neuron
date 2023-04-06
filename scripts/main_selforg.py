@@ -85,6 +85,8 @@ def main(path):
     np.save(path+'v',trainer.vList)
     np.save(path+'z',trainer.zList)
     np.save(path+'w',trainer.w)
+    np.save(path+'mask',trainer.network.mask)
+    np.save(path+'activity',trainer.activityList)
 
 '-----------------------------------------------------------------------------'
 
