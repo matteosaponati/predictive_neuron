@@ -117,7 +117,7 @@ class TrainerClass:
 
             if np.where(z[b,:,:])[1] != []:
 
-                first_spk = np.where(z[b,:,:])[1].max()*self.par.dt
+                first_spk = np.where(z[b,:,:])[1].min()*self.par.dt
                 last_spk = np.where(z[b,:,:])[1].max()*self.par.dt
                 
                 activity[b] = last_spk-first_spk 
