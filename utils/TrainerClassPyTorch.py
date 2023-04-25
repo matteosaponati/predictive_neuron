@@ -1,8 +1,12 @@
 import numpy as np
+import torch
+import torch.nn as nn
+
+loss = nn.MSELoss()
 
 class TrainerClass:
     
-    def __init__(self,par,neuron,train_data,test_data,
+    def __init__(self,par,neuron,optimizer,train_data,test_data,
                  train_onset=None,test_onset=None):
         """
         Args:
@@ -24,6 +28,7 @@ class TrainerClass:
         """
         self.par = par
         self.neuron = neuron
+        self.optimizer = optimizer
         self.train_data = train_data
         self.test_data = test_data
         self.train_onset = train_onset
@@ -60,24 +65,23 @@ class TrainerClass:
         Returns:
         z: A numpy array of shape (batch_size, T) representing the output spike times
         v: A numpy array of shape (batch_size,) representing the cumulative sum of neuron voltages.
-        loss A numpy array of shape (batch_size,) representing the total loss.
+        v_torch: A torch.Tensor of shape (batch_size, T) representing the neuron voltages at each time step.
         """
         
-        v = np.zeros(self.par.batch)
-        loss = np.zeros(self.par.batch)
+        v = torch.zeros(self.par.batch)
+        v_torch = []
         z = np.full((self.par.batch,self.par.T),False)
-        
-        for t in range(self.par.T):
-            v += self.neuron.v
-            loss += np.linalg.norm(x[:,:,t] - 
-                            self.neuron.v*self.neuron.w)
-            if self.train_FLAG == True:
-                self.neuron.backward_online(x[:,:,t])  
-                self.neuron.update_online() 
-            self.neuron(x[:,:,t])
-            z[:,t] = self.neuron.z.astype(bool)
 
-        return z, v, loss
+        for t in range(self.par.T):
+            
+            v += self.neuron.v
+            v_torch.append(self.neuron.v)
+            
+            self.neuron(x[:,:,t])
+            
+            z[:,t] = self.neuron.z.detach().numpy().astype(bool)
+
+        return z, v, torch.stack(v_torch,dim=1)
         
     def _do_train(self):
         """
@@ -94,9 +98,18 @@ class TrainerClass:
                                       self.train_onset)
             else:
                 x = self._get_batch(self.train_data)
+
             self.neuron.state()
-            _, _, loss_batch = self._forward(x)
-            loss[__] = loss_batch.mean()
+            _, _, v_torch = self._forward(x)
+
+            x_hat = torch.einsum("bt,j->bjt",v_torch,self.neuron.w)
+            loss_batch = self._get_loss(x_hat,x)
+
+            self.optimizer.zero_grad()
+            loss_batch.backward()
+            self.optimizer.step()
+            
+            loss[__] = loss_batch.detach().numpy().mean()
 
         return loss
     
@@ -105,9 +118,10 @@ class TrainerClass:
         Returns:
         loss: A numpy array of shape (test_nb, batch) representing the loss for each test iteration.
         v: A numpy array of shape (test_nb, batch) representing the average membrane potential for each test iteration.
-        z: A list of length test_nb, containing numpy arrays of shape (batch, T) representing the binary spike activity for each test iteration.
+        z: A list of length test_nb, containing numpy arrays of shape (batch, T) representing output spikes.
         fr: A numpy array of shape (test_nb, batch) representing the average firing rate for each test iteration.
-        onset: A numpy array of shape (test_nb, batch) representing the onset times for each test iteration, if test_onset is provided, otherwise zeros.
+        onset: A numpy array of shape (test_nb, batch) representing the onset times for each test iteration, 
+        if test_onset is provided, otherwise zeros.
         """
         
         self.train_FLAG = False
@@ -117,7 +131,7 @@ class TrainerClass:
         onset = np.zeros((self.par.test_nb,self.par.batch))
         z = []
 
-        for __ in range(self.par.test_nb):    
+        for __ in range(self.par.test_nb):
             if self.test_onset is not None:
                 x,onset_batch = self._get_batch(self.test_data,
                                                 self.test_onset)
@@ -125,10 +139,12 @@ class TrainerClass:
             else:
                 x = self._get_batch(self.test_data)
             self.neuron.state()
-            z_batch, v_batch, loss_batch = self._forward(x)
+            z_batch, v_batch, v_torch = self._forward(x)
+            x_hat = torch.einsum("bt,j->bjt",v_torch,self.neuron.w)
+            loss_batch = self._get_loss(x_hat,x)
 
-            loss[__,:] = loss_batch.mean()
-            v[__,:] = v_batch.mean()
+            loss[__,:] = loss_batch.detach().numpy().mean()
+            v[__,:] = v_batch.detach().numpy().mean()
             fr[__,:] = self._get_firing_rate(z_batch).mean()
             z.append(z_batch)
 
@@ -162,7 +178,7 @@ class TrainerClass:
             self.vList[e,:] = v
             self.frList[e,:] = fr
             self.onsetList[e,:] = onset
-            self.w[e,:] = self.neuron.w
+            self.w[e,:] = self.neuron.w.detach().clone().numpy()
             self.zList.append(z)
             
             self._save(log,np.mean(loss_train),
@@ -170,6 +186,18 @@ class TrainerClass:
             if e%20 == 0: 
                 print('epoch {} \n loss {} \n v {} '.format(
                         e,np.mean(loss_train),np.mean(v)))
+                
+    def _get_loss(self,x_hat,x):
+        """
+        Args:
+        x_hat: Predicted inputs from the single neuron.
+        x: Pre-synaptic input data.
+
+        Returns:
+        loss: Calculated loss between x_hat and x.
+        """
+        
+        return loss(x_hat,x)
     
     def _get_firing_rate(self,z):
         """

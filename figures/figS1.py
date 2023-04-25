@@ -49,11 +49,16 @@ wList = np.zeros((3,par.epochs,par.N))
 zList = np.zeros((3,par.epochs,par.batch,par.T))
 
 par.init = 'fixed'
+par.init_mean = 0.
 
-for idx, par.init_mean in enumerate([.005,.03,.05]):
+w0_list = [[.15,.15,],[.06,.06],[.02,.15]]
 
+for idx, w0 in enumerate(w0_list):
+
+    print(idx)
     neuron = NeuronClassNumPy(par)
     neuron.initialize()
+    neuron.w = np.array(w0)
 
     trainer = TrainerClass(par,neuron,x,x)
 
@@ -75,7 +80,7 @@ for idx, par.init_mean in enumerate([.005,.03,.05]):
 c=['mediumvioletred','mediumslateblue','lightseagreen','salmon']
 
 zPlot = []
-for s in range(3):
+for s in range(len(w0_list)):
     zPlot.append([])
     for e in range(par.epochs):
         zPlot[s].append((np.where(zList[s,e,0,:])[0]*par.dt).tolist())
@@ -92,7 +97,7 @@ plt.xlim(0,par.epochs)
 plt.ylim(0,10)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('plots/fig1_cleft.pdf',format='pdf', dpi=300)
+plt.savefig('plots/figS1_bleft.pdf',format='pdf', dpi=300)
 plt.close('all')
 
 fig = plt.figure(figsize=(6,6), dpi=300)
@@ -105,7 +110,7 @@ plt.xlim(0,par.epochs)
 plt.ylim(bottom=0)
 plt.grid(True,which='both',axis='x',color='darkgrey',linewidth=.7)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('plots/fig1_cright.pdf',format='pdf', dpi=300)
+plt.savefig('plots/figS1_bright.pdf',format='pdf', dpi=300)
 plt.close('all')
 
 '----------------------------------'
@@ -113,7 +118,7 @@ plt.close('all')
 par.eta = 1e-4
 par.epochs = 10
 
-w_sweep = np.arange(.01,.15,.01)
+w_sweep = np.arange(.01,.2,.01)
 
 par.init_mean = 0.
 w1 = np.zeros((w_sweep.size,w_sweep.size))
@@ -148,7 +153,7 @@ plt.yticks(np.arange(w_sweep.size)[::8],np.round(w_sweep,2)[::8])
 x,y = np.meshgrid(np.arange(len(w_sweep)),np.arange(len(w_sweep)))
 plt.quiver(x,y,dw_2,dw_1,angles='xy',color='mediumvioletred',headwidth=2)
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('plots/fig1_d.pdf', format='pdf', dpi=300)
+plt.savefig('plots/figS1_a.pdf', format='pdf', dpi=300)
 plt.close('all')    
 
 '----------------------------------'

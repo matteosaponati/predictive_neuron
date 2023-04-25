@@ -5,7 +5,6 @@ import numpy as np
 import torch
 
 from utils.funs import get_Namespace_hyperparameters
-#from utils.data import SequencesDataset, prepare_dataloader
 
 '-----------------------------------------------------------------------------'
 
@@ -33,6 +32,8 @@ def main(path):
         
         train_data = np.load(loaddir+'x_train.npy')
         test_data = np.load(loaddir+'x_test.npy')
+        train_onset = np.load(loaddir+'onsets_train.npy')
+        test_onset = np.load(loaddir+'onsets_test.npy')
         
         par.train_nb = int(train_data.shape[0]/par.batch)
         par.test_nb = int(test_data.shape[0]/par.batch)
@@ -41,7 +42,11 @@ def main(path):
         neuron.initialize()
 
         'train'
-        trainer = TrainerClass(par,neuron,train_data,test_data)
+        if par.onset > 1:
+            trainer = TrainerClass(par,neuron,train_data,test_data,
+                               train_onset,test_onset)
+        else:
+            trainer = TrainerClass(par,neuron,train_data,test_data)
         trainer.train(log)
 
     if par.package == 'PyTorch':
@@ -49,28 +54,41 @@ def main(path):
         from models.NeuronClass import NeuronClassPyTorch
         from utils.TrainerClassPyTorch import TrainerClass
 
-        train_dataloader = SequencesDataset(par,mode='train')
-        train_data, par.train_nb = prepare_dataloader(train_dataloader,
-                                                      batch_size=par.batch)
-        test_dataloader = SequencesDataset(par,mode='test')
-        test_data, par.test_nb = prepare_dataloader(test_dataloader,
-                                       batch_size=par.batch)
+        loaddir = ('../_datasets/N_seq_{}_N_dist_{}_Dt_{}/'+
+               'freq_{}_jitter_{}_onset_{}/').format(par.N_seq,par.N_dist,par.Dt,
+                                             par.freq,par.jitter,par.onset)
         
-        neuron = NeuronClassPyTorch()
-        parameters = [neuron.w]
+        train_data = np.load(loaddir+'x_train.npy')
+        test_data = np.load(loaddir+'x_test.npy')
+        train_data = torch.from_numpy(train_data).to(torch.float)
+        test_data = torch.from_numpy(test_data).to(torch.float)
+
+        if par.onset > 1 :
+            train_onset = np.load(loaddir+'onsets_train.npy')
+            test_onset = np.load(loaddir+'onsets_test.npy')
+            train_onset = torch.from_numpy(train_onset).to(torch.float)
+            test_onset = torch.from_numpy(test_onset).to(torch.float)
         
-        # define optimizer
+        par.train_nb = int(train_data.shape[0]/par.batch)
+        par.test_nb = int(test_data.shape[0]/par.batch)
+
+        neuron = NeuronClassPyTorch(par)
+        neuron.initialize()
 
         if par.optimizer == 'SGD':
-            optimizer = torch.optim.SGD(parameters,lr=par.eta_out)
+            optimizer = torch.optim.SGD(neuron.parameters(),lr=par.eta)
         if par.optimizer == 'RMSprop':
-            optimizer = torch.optim.RMSprop(parameters,lr=par.eta_out)
+            optimizer = torch.optim.RMSprop(neuron.parameters(),lr=par.eta)
         if par.optimizer == 'Adam':
-            optimizer = torch.optim.Adam(parameters,lr = par.eta_out,
+            optimizer = torch.optim.Adam(neuron.parameters(),lr = 1e-3,
                                          betas=(.9,.999))
         
         'train'
-        trainer = TrainerClass(par,neuron,train_data,test_data)
+        if par.onset > 1:
+            trainer = TrainerClass(par,neuron,optimizer,train_data,test_data,
+                                   train_onset,test_onset)
+        else:
+            trainer = TrainerClass(par,neuron,optimizer,train_data,test_data)
         trainer.train(log)
     
     '-----------------------------'
@@ -81,6 +99,7 @@ def main(path):
     np.save(path+'v',trainer.vList)
     np.save(path+'fr',trainer.frList)
     np.save(path+'z',trainer.zList)
+    np.save(path+'onset',trainer.onsetList)
     np.save(path+'w',trainer.w)
 
 '-----------------------------------------------------------------------------'

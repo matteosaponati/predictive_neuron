@@ -3,8 +3,8 @@ import os
 import numpy as np
 
 from utils.funs import get_dir_results, get_hyperparameters
-from models.SelfOrgNetworkClass import NetworkClassNumPy
-from utils.TrainerClassNumPy_SelfOrg import TrainerClass
+from models.NeuronClass import NeuronClassNumPy
+from utils.TrainerClassNumPy import TrainerClass
 
 '-------------------------------'
 
@@ -14,37 +14,36 @@ if __name__ == "__main__":
 
     par = parser.parse_args()
 
-    par.name = 'selforg'
-    par.network_type = 'nearest'
+    par.name = 'multisequence'
     par.package = 'NumPy'
 
     par.bound = 'none'
-    par.eta = 8e-7
+    par.eta = 3e-7
     par.batch = 1
-    par.epochs = 2000
+    par.epochs = 4000
     
     par.init = 'fixed'
-    par.init_mean = .02
-    par.init_rec = .0003
+    par.init_mean = .04
     
+    par.sequence = 'deterministic'
     par.Dt = 2
-    par.n_in = 8
-    par.nn = 10
-    par.delay = 4
+    par.N_seq = 8
+    par.n_afferents = 3
+    par.delay = 20
+    par.N = par.N_seq*par.n_afferents 
 
     par.freq = 5.
     par.jitter = 1.
+    par.onset = 0
 
     par.dt = .05
-    par.tau_m = 25.
-    par.v_th = 3.1
+    par.tau_m = 18.
+    par.v_th = 2.6
     par.tau_x = 2.
 
-    par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
-                     par.jitter + 80)/(par.dt))
-    
-    par.N = par.n_in+2
-    
+    par.T = int((par.Dt*par.N_seq + par.n_afferents*par.delay + 
+                     par.jitter)/(par.dt))
+        
     par.dir_output = '../_results/'
 
     '-----------------------------------------'
@@ -58,26 +57,27 @@ if __name__ == "__main__":
     with open(log,'w') as train:
         train.write('epoch, loss_train, loss_test \n')
     
-    loaddir = ('../_datasets/{}/{}/n_in_{}_nn_{}_Dt_{}/').format(par.name,par.network_type,par.n_in,par.nn,par.Dt) + \
-                    ('freq_{}_jitter_{}/').format(par.freq,par.jitter)
+    loaddir = ('../_datasets/{}/N_seq_{}_n_afferents_{}_Dt_{}_delay_{}/'+
+               'freq_{}_jitter_{}/').format(par.name,par.N_seq,par.n_afferents,
+                                                     par.Dt,par.delay,par.freq,par.jitter)
         
     train_data = np.load(loaddir+'x_train.npy')
     test_data = np.load(loaddir+'x_test.npy')
         
-    ## complete online training: one example per batch
     par.train_nb = par.batch
     par.test_nb = par.batch
         
-    network = NetworkClassNumPy(par)
-    network.initialize()
+    neuron = NeuronClassNumPy(par)
+    neuron.initialize()
 
     'train'
-    trainer = TrainerClass(par,network,train_data,test_data)
+    trainer = TrainerClass(par,neuron,train_data,test_data)
     trainer.train(log)
 
     np.save(path+'loss_train',trainer.losstrainList)
     np.save(path+'loss_test',trainer.losstestList)
     np.save(path+'v',trainer.vList)
-    np.save(path+'activity',trainer.activityList)
+    np.save(path+'fr',trainer.frList)
     np.save(path+'z',trainer.zList)
+    np.save(path+'onset',trainer.onsetList)
     np.save(path+'w',trainer.w)

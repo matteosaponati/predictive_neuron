@@ -27,7 +27,7 @@ par.network_type = 'nearest'
 par.package = 'NumPy'
 
 par.bound = 'none'
-par.eta = 8e-7
+par.eta = 1e-6
 par.batch = 1
 par.epochs = 1000
     
@@ -111,15 +111,17 @@ def get_dataset_selforg(par,spk_times):
                 'add inputs only to selected neurons'
                 if nn in range(par.subseq):    
                     x[b,n,nn,spk_times[b,n,nn]] = 1
-                    x[b,n,nn,:] = np.convolve(x[b,n,nn,:],np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]  
+                    x[b,n,nn,:] = np.convolve(x[b,n,nn,:],
+                                              np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]  
     
     return x
 
 '-----------------------------'
+
+par.epochs = 1
+
 'before'
-par.subseq, par.epochs = 2, 1
-par.freq = 10.
-par.jitter = 2.
+par.subseq = 2
 x = get_dataset_selforg(par,spk_times)
 
 train_data = get_dataset_selforg(par,spk_times)
@@ -133,7 +135,7 @@ network.initialize()
 network.w = w[0,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _ = trainer._do_test()
+_, _, z, _, _ = trainer._do_test()
 
 zPlot = []
 for n in range(par.nn):
@@ -155,7 +157,7 @@ plt.close('all')
  
 '-----------------------------'
 'learning'
-par.subseq, par.epochs = par.nn, 1
+par.subseq = par.nn
 x = get_dataset_selforg(par,spk_times)
 
 train_data = get_dataset_selforg(par,spk_times)
@@ -166,10 +168,10 @@ par.test_nb = par.batch
         
 network = NetworkClassNumPy(par)
 network.initialize()
-network.w = w[30,:]
+network.w = w[10,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _ = trainer._do_test()
+_, _, z, _, _ = trainer._do_test()
 
 zPlot = []
 for n in range(par.nn):
@@ -191,7 +193,7 @@ plt.close('all')
 
 '-----------------------------'
 'after'
-par.subseq, par.epochs = 2, 1
+par.subseq = 1
 x = get_dataset_selforg(par,spk_times)
 
 train_data = get_dataset_selforg(par,spk_times)
@@ -205,7 +207,7 @@ network.initialize()
 network.w = w[-1,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _ = trainer._do_test()
+_, _, z, _, _ = trainer._do_test()
 
 zPlot = []
 for n in range(par.nn):
@@ -227,21 +229,14 @@ plt.close('all')
 
 '-----------------------------'
 'after spontaneous'
-par.subseq, par.epochs = 2, 1
+
 x = get_dataset_selforg(par,spk_times)
 
 train_data = get_dataset_selforg(par,spk_times)
 test_data = get_dataset_selforg(par,spk_times)
-        
-par.train_nb = par.batch
-par.test_nb = par.batch
-        
-network = NetworkClassNumPy(par)
-network.initialize()
-network.w = w[-1,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _ = trainer._do_test()
+_, _, z, _, _ = trainer._do_test()
 
 zPlot = []
 for n in range(par.nn):

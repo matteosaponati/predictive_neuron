@@ -1,15 +1,21 @@
 import json
 import types
 import numpy as np
+import torch
 import matplotlib.colors as colors
 
 '-----------------------------------------------------------------------------'
 
 def get_dir_results(par):
-    'get directory to save results'
+    """
+    Parameters:
+    par (argparse.Namespace): An object containing the parsed command-line arguments.
+
+    Returns:
+    path (str): Directory path for storing results based on the input parameters.
+    """
     
     if par.name == 'sequence':
-        
         path = par.dir_output+('{}/{}/N_seq_{}_N_dist_{}_Dt_{}/'+
                     'freq_{}_jitter_{}_onset_{}/'+
                     'taum_{}_vth_{}_eta_{}/').format(par.package,
@@ -18,7 +24,6 @@ def get_dir_results(par):
                     par.eta)
         
     if par.name == 'selforg':
-
         if par.network_type == 'random':
             path = par.dir_output+('{}/{}/{}/n_in_{}_nn_{}_Dt_{}'+
                     '/freq_{}_jitter_{}/'+
@@ -26,7 +31,6 @@ def get_dir_results(par):
                     par.name,par.network_type,par.n_in,par.nn,par.Dt,par.freq,
                     par.jitter,par.n_afferents,par.tau_m,par.v_th,
                     par.eta,par.rep)
-        
         else:
             path = par.dir_output+('{}/{}/{}/n_in_{}_nn_{}_delay_{}_Dt_{}'+
                     '/freq_{}_jitter_{}/'+
@@ -34,10 +38,26 @@ def get_dir_results(par):
                     par.name,par.network_type,par.n_in,par.nn,par.delay,par.Dt,par.freq,
                     par.jitter,par.tau_m,par.v_th,
                     par.eta)
- 
+    
+    if par.name == 'multisequence':
+        path = par.dir_output+('{}/{}/N_seq_{}_n_afferents_{}_Dt_{}_delay_{}/'+
+                    'freq_{}_jitter_{}/'+
+                    'taum_{}_vth_{}_eta_{}/').format(par.package,
+                    par.name,par.N_seq,par.n_afferents,par.Dt,par.delay,par.freq,
+                    par.jitter,par.onset,par.tau_m,par.v_th,
+                    par.eta)
+
     return path
 
 def get_hyperparameters(par,path):
+    """
+    Parameters:
+    par (argparse.Namespace): An object containing the parsed command-line arguments.
+    path (str): Directory path where the hyperparameters JSON file will be saved.
+
+    Returns:
+    None
+    """
     
     hyperparameters = vars(par)    
     with open(path+'hyperparameters.json','w') as outfile:
@@ -46,6 +66,13 @@ def get_hyperparameters(par,path):
     return
 
 def get_Namespace_hyperparameters(args):
+    """
+    Parameters:
+    args (dict): A dictionary containing hyperparameters as keys and their corresponding values.
+
+    Returns:
+    par (types.SimpleNamespace): An object containing the extracted hyperparameters as attributes.
+    """
     
     par = types.SimpleNamespace()
     
@@ -89,14 +116,14 @@ def get_Namespace_hyperparameters(args):
     par.tau_m = args['tau_m']
     par.v_th = args['v_th']
     par.tau_x = args['tau_x']
-
     par.nn = args['nn']
     
     'utils'
+    par.device = args['device']
     par.dir_output = args['dir_output']
-    
+
     if par.name == 'sequence':
-        
+
         par.T = int(2*(par.Dt*par.N_seq + par.jitter) / (par.dt))
         par.N = par.N_seq+par.N_dist
         if par.onset == 1: par.onset = par.T // 2
@@ -104,23 +131,25 @@ def get_Namespace_hyperparameters(args):
     if par.name == 'selforg': 
         
         if par.network_type == 'nearest': 
-            
             par.T = int((par.Dt*par.n_in + par.delay*par.nn +  
                      par.jitter + 80)/(par.dt))
             par.N = par.n_in+2
 
         if par.network_type == 'all': 
-            
             par.T = int((par.Dt*par.n_in + par.delay*par.nn +  
                      par.jitter + 80)/(par.dt))
             par.N = par.n_in+par.nn
 
         if par.network_type == 'random':
-
             par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
                      par.jitter + 80)/(par.dt))
             par.N_in = par.n_in*par.nn
             par.N = par.N_in+par.nn
+
+        if par.name == 'multisequence':
+            par.T = int((par.Dt*par.N_seq + par.n_afferents*par.delay + 
+                     par.jitter)/(par.dt))
+            par.N = par.N_seq*par.n_afferents 
         
     return par
 

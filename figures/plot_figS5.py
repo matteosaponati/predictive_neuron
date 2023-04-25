@@ -21,34 +21,36 @@ parser = argparse.ArgumentParser()
 
 par = parser.parse_args()
 
-par.name = 'sequence'
+par.name = 'multisequence'
 par.package = 'NumPy'
 
-par.bound = 'soft'
-par.eta = 5e-4
-par.batch = 1
-par.epochs = 1000
+par.bound = 'none'
+par.eta = 3e-7
+par.batch = 3
+par.epochs = 4000
     
 par.init = 'fixed'
-par.init_mean = .1
+par.init_mean = .04
     
 par.sequence = 'deterministic'
 par.Dt = 2
-par.N_seq = 100
-par.N_dist = 100
-par.N = par.N_seq+par.N_dist
+par.N_seq = 8
+par.n_afferents = 3
+par.delay = 20
+par.N = par.N_seq*par.n_afferents 
 
-par.freq = 10.
-par.jitter = 2.
-par.onset = 1
+par.freq = 5.
+par.jitter = 1.
+par.onset = 0
 
 par.dt = .05
-par.tau_m = 10.
-par.v_th = 1.4
+par.tau_m = 18.
+par.v_th = 2.6
 par.tau_x = 2.
 
-par.T = int(2*(par.Dt*par.N_seq + par.jitter)/(par.dt))
-
+par.T = int((par.Dt*par.N_seq + par.n_afferents*par.delay + 
+                     par.jitter)/(par.dt))
+        
 par.dir_output = '../_results/'
 
 '-----------------------------------------'
@@ -56,46 +58,33 @@ par.dir_output = '../_results/'
 path = get_dir_results(par)
 
 z = np.load(path+'z.npy')
-fr = np.load(path+'fr.npy')*1000 # convert in Hz
 w = np.load(path+'w.npy')
-onset = np.load(path+'onset.npy')
 
-fig = plt.figure(figsize=(7,6), dpi=300)    
-
-plt.imshow(np.flipud(w.T)/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
-
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.colorbar()
-plt.title(r'$\vec{w}/\vec{w}_0$')
-plt.ylabel('inputs')
-plt.xlabel('epochs')
-plt.savefig('plots/fig2_c.pdf',format='pdf', dpi=300)
-plt.close('all')
-
-fig = plt.figure(figsize=(4,6), dpi=300)
-
-plt.axhline(y=fr.mean(), color='black',linestyle='dashed',linewidth=1.5)
-plt.plot(fr,'purple',linewidth=2)    
-
-fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.xlabel('epochs')
-plt.ylabel('firing rate [Hz]')
-plt.savefig('plots/fig2_b_fr.pdf',format='pdf', dpi=300)
-plt.close('all')
-
-fig = plt.figure(figsize=(7,6), dpi=300)
+fig = plt.figure(figsize=(8,6), dpi=300)
 
 zPlot = []
 for b in range(par.epochs):
      zPlot.append((np.where(z[b,0,0,:])[0]*par.dt).tolist())
 
 for k,j in zip(zPlot,range(par.epochs)):
-    plt.scatter([j]*len(k),np.array(k) -onset[j,0,0]*par.dt,c='rebeccapurple',s=2)
-    
+    plt.scatter([j]*len(k),np.array(k),c='rebeccapurple',s=2)
+
 plt.ylabel('time [ms]')
 plt.ylim(0,par.T*par.dt)
 plt.xlim(0,par.epochs)
 plt.xlabel('epochs')
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
-plt.savefig('plots/fig2_b.png',format='png', dpi=300)
+plt.savefig('plots/figS5_b.png',format='png', dpi=300)
+plt.close('all')
+
+fig = plt.figure(figsize=(7,6), dpi=300)
+plt.title(r'$\vec{w}/\vec{w}_0$')
+plt.ylabel('inputs')
+plt.xlabel('epochs')
+plt.xlim(0,par.epochs)
+plt.ylim(0,par.N-1)
+plt.imshow(w.T/par.init_mean,aspect='auto',cmap='coolwarm',norm=MidpointNormalize(midpoint=1))
+plt.colorbar()
+fig.tight_layout(rect=[0, 0.01, 1, 0.97])
+plt.savefig('plots/figS5_c.pdf', format='pdf', dpi=300)
 plt.close('all')

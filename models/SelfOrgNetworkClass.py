@@ -19,9 +19,6 @@ class NetworkClassNumPy():
         if self.par.network_type == 'all':
             self.w[:self.par.n_in,:] = self.par.init_mean*np.ones((self.par.n_in,self.par.nn))
             self.w[self.par.n_in:,:] = self.par.init_rec*np.ones((self.par.nn,self.par.nn))
-
-            #self.w[:self.par.n_in,:] = np.random.uniform(self.par.init_mean-.02,self.par.init_mean+.02,(self.par.n_in,self.par.nn))
-            #self.w[self.par.n_in:,:] = np.random.uniform(0.,self.par.init_rec,(self.par.nn,self.par.nn))
         
         if self.par.network_type == 'random':
             self.w[:self.par.N_in,:] = np.random.uniform(0.,self.par.init_mean,(self.par.N_in,self.par.nn))

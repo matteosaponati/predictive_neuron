@@ -55,13 +55,14 @@ if __name__ == "__main__":
     with open(log,'w') as train:
         train.write('epoch, loss_train, loss_test \n')
     
-    par.onset = par.T // 2
-    loaddir = ('../_datasets/N_seq_{}_N_dist_{}_Dt_{}/'+
-               'freq_{}_jitter_{}_onset_{}/').format(par.N_seq,par.N_dist,par.Dt,
+    loaddir = ('../_datasets/{}/N_seq_{}_N_dist_{}_Dt_{}/'+
+               'freq_{}_jitter_{}_onset_{}/').format(par.name,par.N_seq,par.N_dist,par.Dt,
                                              par.freq,par.jitter,par.onset)
         
     train_data = np.load(loaddir+'x_train.npy')
     test_data = np.load(loaddir+'x_test.npy')
+    train_onset = np.load(loaddir+'onsets_train.npy')
+    test_onset = np.load(loaddir+'onsets_test.npy')
         
     ## complete online training: one example per batch
     par.train_nb = par.batch
@@ -71,7 +72,7 @@ if __name__ == "__main__":
     neuron.initialize()
 
     'train'
-    trainer = TrainerClass(par,neuron,train_data,test_data)
+    trainer = TrainerClass(par,neuron,train_data,test_data,train_onset,test_onset)
     trainer.train(log)
 
     np.save(path+'loss_train',trainer.losstrainList)

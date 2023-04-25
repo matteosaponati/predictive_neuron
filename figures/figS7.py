@@ -71,7 +71,6 @@ if __name__ == "__main__":
         
     network = NetworkClassNumPy(par)
     network.initialize()
-    print(network.w)
 
     'train'
     trainer = TrainerClass(par,network,train_data,test_data)
