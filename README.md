@@ -1,4 +1,4 @@
-## Predictive plasticity at the single neuron level
+## predictive plasticity at the single neuron level
 
 **summary**
 
