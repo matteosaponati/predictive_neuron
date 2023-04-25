@@ -29,7 +29,7 @@ this repo is structured as follows:
 + `./figures/`: contains the code necessary to reproduce all the figures in the paper
 + `./models/` contains the Python Class of the different models
 + `./scripts/` contains scripts to run the model on different types of inputs and network implementations
-+ `./scripts/` contains the Python modules for training and the helper functions for the analysis
++ `./utils/` contains the Python modules for training and the helper functions for the analysis
 -------------------------
 
 
