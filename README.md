@@ -3,7 +3,7 @@
 **summary**
 
 this is a repository for the paper:
-<br/>"*Sequence anticipation and spike-timing-dependent-plasticity emerge from a voltage-based predictive learning rule*"<br/>
+<br/>"*Sequence anticipation and spike-timing-dependent-plasticity emerge from a predictive learning rule*"<br/>
 M Saponati, M Vinck<br/>
 (2021, BiorXiv) (under revision)<br/>
 https://www.biorxiv.org/content/10.1101/2021.10.31.466667v2x
