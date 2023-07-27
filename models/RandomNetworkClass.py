@@ -73,10 +73,11 @@ class NetworkClassNumPy():
             self.w = np.where(self.w<0,np.zeros_like(self.w),self.w)
         else: self.w = self.w - self.par.eta*self.grad.mean(axis=0)
     
-    def _get_inputs(self,x):
-
+    def _get_inputs(self, x):
         self.z_out = self.beta*self.z_out + self.z
         self.x = np.zeros((self.par.batch,self.par.N,self.par.nn))
         for n in range(self.par.nn):
-            self.x[:,:,n] = np.concatenate((x[:,:,n],np.append(np.delete(self.z_out,n,axis=1),
-                                                np.zeros((self.par.batch,1)),axis=1)),axis=1)  
+            temp_z_out = np.delete(self.z_out,n,axis=1)
+            self.x[:,:,n] = np.hstack((x[:,:,n],temp_z_out,np.zeros((self.par.batch,1))))
+
+ 

@@ -62,27 +62,28 @@ class NetworkClassNumPy():
             self.w = self.w - self.par.eta*self.grad.mean(axis=0)
             self.w = np.where(self.w<0,np.zeros_like(self.w),self.w)
         else: self.w = self.w - self.par.eta*self.grad.mean(axis=0)
-    
-    def _get_inputs(self,x):
 
-        self.z_out = self.beta*self.z_out + self.z
+
+    def _get_inputs(self, x):
+        self.z_out = self.beta * self.z_out + self.z
         self.x = np.zeros((self.par.batch,self.par.N,self.par.nn))
-        
+    
         if self.par.network_type == 'nearest':
 
             for n in range(self.par.nn): 
                 if n == 0:
-                    self.x[:,:,n] = np.concatenate((x[:,:,n],np.array([np.zeros((self.par.batch,1)),
-                                                                    self.z_out[:,n+1]]).T),axis=1)       
-                elif n == self.par.nn-1:
-                    self.x[:,:,n] = np.concatenate((x[:,:,n],np.array([self.z_out[:,n-1],
-                                                                    np.zeros((self.par.batch,1))]).T),axis=1)   
-                else: 
-                    self.x[:,:,n] = np.concatenate((x[:,:,n],np.array([self.z_out[:,n-1],
-                                                                    self.z_out[:,n+1]]).T),axis=1) 
-        
+                    self.x[:,:,n] = np.hstack((x[:,:,n],
+                                                 np.zeros((self.par.batch,1)),
+                                                 self.z_out[:,n+1][:,None]))
+                elif n == self.par.nn - 1:
+                    self.x[:,:,n] = np.hstack((x[:,:,n],
+                                                 self.z_out[:,n-1][:,None],
+                                                 np.zeros((self.par.batch,1))))
+                else:
+                    self.x[:,:,n] = np.hstack((x[:, :, n],
+                                                 self.z_out[:,n-1][:,None],
+                                                 self.z_out[:,n+1][:,None]))
         else:
-
             for n in range(self.par.nn):
-                self.x[:,:,n] = np.concatenate((x[:,:,n],np.append(np.delete(self.z_out,n,axis=1),
-                                                                   np.zeros((self.par.batch,1)),axis=1)),axis=1)  
+                temp_z_out = np.delete(self.z_out, n, axis=1)
+                self.x[:,:,n] = np.hstack((x[:,:,n], temp_z_out, np.zeros((self.par.batch,1))))
