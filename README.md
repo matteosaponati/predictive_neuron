@@ -5,8 +5,8 @@
 this is a repository for the paper:
 <br/>"*Sequence anticipation and spike-timing-dependent plasticity emerge from a predictive learning rule*"<br/>
 M Saponati, M Vinck<br/>
-(2023, Nature Communications) (accepted)<br/>
-https://www.biorxiv.org/content/10.1101/2021.10.31.466667v2x
+Nature Communications 14, 4985 (2023). <br/>
+https://doi.org/10.1038/s41467-023-40651-w
 
 -------------------------
 
