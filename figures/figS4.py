@@ -66,8 +66,8 @@ if __name__ == "__main__":
         
     train_data = np.load(loaddir+'x_train.npy')
     test_data = np.load(loaddir+'x_test.npy')
-    train_onset = np.load(loaddir+'onsets_train.npy')
-    test_onset = np.load(loaddir+'onsets_test.npy')
+    train_onset = np.load(loaddir+'onsets_train.npy',allow_pickle = True)
+    test_onset = np.load(loaddir+'onsets_test.npy',allow_pickle = True)
         
     par.train_nb = par.batch
     par.test_nb = par.batch

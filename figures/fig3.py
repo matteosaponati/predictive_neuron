@@ -24,7 +24,7 @@ if __name__ == "__main__":
     par.epochs = 2000
     
     par.init = 'fixed'
-    par.init_mean = .06
+    par.init_mean = .03
     par.init_rec = .0003
     
     par.Dt = 2
@@ -36,8 +36,8 @@ if __name__ == "__main__":
     par.jitter = 1.
 
     par.dt = .05
-    par.tau_m = 25.
-    par.v_th = 3.1
+    par.tau_m = 26.
+    par.v_th = 3.
     par.tau_x = 2.
 
     par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  

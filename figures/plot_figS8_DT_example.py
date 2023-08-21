@@ -65,29 +65,21 @@ par.dir_output = '../_results/'
 
 path = get_dir_results(par)
 
-repetitions = 1
+time = np.zeros(par.epochs)
+z = np.load(path+'z.npy')
 
-time = np.zeros((100,par.epochs))
-for r, par.rep in enumerate(range(100)):
-    
-    path = get_dir_results(par)
-    
-    z = np.load(path+'z.npy')
-
-    for b in range(par.epochs):
+for b in range(par.epochs):
         
-        if len(np.where(z[b,0,0,:,:])[1]) >0:
+    if len(np.where(z[b,0,0,:,:])[1]) >0:
 
-            first_spk = np.where(z[b,0,0,:,:])[1].min()*par.dt
-            last_spk = np.where(z[b,0,0,:,:])[1].max()*par.dt
+        first_spk = np.where(z[b,0,0,:,:])[1].min()*par.dt
+        last_spk = np.where(z[b,0,0,:,:])[1].max()*par.dt
         
-            time[r,b] = last_spk-first_spk
+        time[b] = last_spk-first_spk
 
 fig = plt.figure(figsize=(4,6),dpi=300)
-plt.plot(time.mean(axis=0),color='purple')
-plt.fill_between(range(par.epochs),time.mean(axis=0)-stats.sem(time,axis=0),time.mean(axis=0)+stats.sem(time,axis=0),
-                 color='purple',alpha=.3)
+plt.plot(time,color='purple')
 plt.xlabel('epochs')
 plt.ylabel(r'$\Delta t$ [ms]')
-plt.savefig('plots/figS8_DT.pdf',format='pdf',dpi=300)
+plt.savefig('plots/figS8_DT_example.pdf',format='pdf',dpi=300)
 

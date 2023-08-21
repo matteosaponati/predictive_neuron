@@ -1,6 +1,9 @@
 import argparse
 import os
 import numpy as np
+import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 22})
+plt.rc('axes', axisbelow=True)
 
 from utils.funs import get_dir_results, get_hyperparameters
 from models.SelfOrgNetworkClass import NetworkClassNumPy
@@ -21,7 +24,7 @@ par.batch = 1
 par.epochs = 1
     
 par.init = 'fixed'
-par.init_mean = .02
+par.init_mean = .03
 par.init_rec = .0003
     
 par.Dt = 2
@@ -33,8 +36,8 @@ par.freq = 5.
 par.jitter = 1.
 
 par.dt = .05
-par.tau_m = 25.
-par.v_th = 3.1
+par.tau_m = 26.
+par.v_th = 3.
 par.tau_x = 2.
 
 par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
@@ -87,10 +90,10 @@ n_required = np.zeros((w.shape[0],rep))
 
 count = 0
 for e in range(w.shape[0]):
+
+    print(e)
     
     for k in range(rep):
-
-        print(k)
             
         'run across neurons in the network'
         for par.subseq in range(1,par.nn+1):
@@ -106,7 +109,7 @@ for e in range(w.shape[0]):
 
             trainer = TrainerClass(par,network,x,x)
             _, _, z, _, _ = trainer._do_test()
-        
+
             '''
             ---------------------------------------------------------
             (1) span the spiking activity of every neuron in the network
@@ -123,13 +126,14 @@ for e in range(w.shape[0]):
 
             count = 0
             for n in range(par.nn):
-                if z[n][0] != []: count+=1
+                if np.any(z[0][0][n]) == True: count+=1
 
             if count == par.nn:
                 n_required[e,k] = par.subseq
                 break
             else:
                 continue
+            
 
 '---------------------------------------'
 'plot'
@@ -142,6 +146,5 @@ plt.fill_between(range(w.shape[0]),n_required.mean(axis=1)+n_required.std(axis=1
 fig.tight_layout(rect=[0, 0.01, 1, 0.97])
 plt.xlabel('epochs')
 plt.ylabel(r'# neurons for replay')
-plt.savefig(os.getcwd()+'/plots/n_needed.png',format='png', dpi=300)
-plt.savefig(os.getcwd()+'/plots/n_needed.pdf',format='pdf', dpi=300)
+plt.savefig('plots/figS6.pdf',format='pdf', dpi=300)
 plt.close('all')           
