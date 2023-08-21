@@ -53,7 +53,6 @@ spk_times = get_spike_times(par)
 x,onsets = get_dataset_sequence(par,spk_times)
 
 spk_times = (np.array([2.,6.])/par.dt).astype(int)
-print(spk_times)
     
 x = np.zeros((par.batch,par.N,par.T))
 for b in range(par.batch):

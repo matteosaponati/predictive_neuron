@@ -27,12 +27,12 @@ par.network_type = 'nearest'
 par.package = 'NumPy'
 
 par.bound = 'none'
-par.eta = 1e-6
+par.eta = 8e-7
 par.batch = 1
-par.epochs = 1000
+par.epochs = 8000
     
 par.init = 'fixed'
-par.init_mean = .02
+par.init_mean = .06
 par.init_rec = .0003
     
 par.Dt = 2

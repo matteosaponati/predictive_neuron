@@ -137,7 +137,7 @@ network.initialize()
 network.w = w[0,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _ = trainer._do_test()
+_, _, z, _, _= trainer._do_test()
 
 zPlot = []
 for n in range(par.nn):
@@ -173,7 +173,7 @@ network.initialize()
 network.w = w[10,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _ = trainer._do_test()
+_, _, z, _, _ = trainer._do_test()
 
 zPlot = []
 for n in range(par.nn):
@@ -195,7 +195,7 @@ plt.close('all')
 
 '-----------------------------'
 'after'
-par.subseq = 1
+par.subseq = 2
 x = get_dataset_selforg(par,spk_times)
 
 train_data = get_dataset_selforg(par,spk_times)
@@ -209,7 +209,7 @@ network.initialize()
 network.w = w[-1,:]
 
 trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _ = trainer._do_test()
+_, _, z, _, _ = trainer._do_test()
 
 zPlot = []
 for n in range(par.nn):
@@ -238,7 +238,7 @@ train_data = get_dataset_selforg(par,spk_times)
 test_data = get_dataset_selforg(par,spk_times)
         
 trainer = TrainerClass(par,network,test_data,test_data)
-_, _, z, _ = trainer._do_test()
+__, _, z, _, _ = trainer._do_test()
 
 zPlot = []
 for n in range(par.nn):

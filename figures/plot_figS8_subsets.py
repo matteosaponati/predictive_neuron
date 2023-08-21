@@ -51,7 +51,7 @@ par.tau_m = 30.
 par.v_th = 3.1
 par.tau_x = 2.
 
-par.rep = 3
+par.rep = 1
 
 par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
                         par.jitter + 80)/(par.dt))

@@ -78,8 +78,6 @@ w_postpre = np.zeros(delay.size)
 
 for j, par.Dt in enumerate(delay):
 
-    print(par.Dt)
-
     spk_times = get_spike_times(par)
     x,onsets = get_dataset_sequence(par,spk_times)
 

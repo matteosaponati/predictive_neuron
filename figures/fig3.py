@@ -24,7 +24,7 @@ if __name__ == "__main__":
     par.epochs = 2000
     
     par.init = 'fixed'
-    par.init_mean = .02
+    par.init_mean = .06
     par.init_rec = .0003
     
     par.Dt = 2

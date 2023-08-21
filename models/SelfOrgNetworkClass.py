@@ -65,7 +65,7 @@ class NetworkClassNumPy():
 
 
     def _get_inputs(self, x):
-        self.z_out = self.beta * self.z_out + self.z
+        self.z_out = self.beta*self.z_out + self.z
         self.x = np.zeros((self.par.batch,self.par.N,self.par.nn))
     
         if self.par.network_type == 'nearest':

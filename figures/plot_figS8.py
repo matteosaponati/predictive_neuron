@@ -51,7 +51,7 @@ par.tau_m = 25.
 par.v_th = 3.1
 par.tau_x = 2.
 
-par.rep = 21
+par.rep = 1
 
 par.T = int((par.Dt*par.n_in + par.delay*par.n_in +  
                         par.jitter + 80)/(par.dt))
@@ -153,7 +153,7 @@ for n in range(par.nn):
 zList = np.argsort(zList)
 
 hex_list = ['#33A1C9','#FFFAF0','#7D26CD']
-divnorm = colors.DivergingNorm(vmin=w[-1,:].min(),vcenter=0, vmax=w[-1,:].max())
+divnorm = colors.TwoSlopeNorm(vmin=w[-1,:].min(),vcenter=0, vmax=w[-1,:].max())
 
 fig = plt.figure(figsize=(6,6), dpi=300)    
 plt.imshow(w[-1,:,zList].T,cmap=get_continuous_cmap(hex_list),norm=divnorm,aspect='auto')
