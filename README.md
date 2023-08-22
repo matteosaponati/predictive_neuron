@@ -1,4 +1,4 @@
-## predictive learning in single neurons
+## a predictive learning rule in single neurons
 
 **summary**
 
@@ -34,3 +34,18 @@ this repo is structured as follows:
 + `environment.yml` configuration file with all the dependencies listed
 + `setup.py` python script for installation with pip
 -------------------------
+
+ ## citation and credits
+Saponati, M., Vinck, M. (2023).
+**Sequence anticipation and spike-timing-dependent plasticity emerge from a predictive learning rule**. Nature Communications, 14(1), 1-13.<br/>
+```
+@article{saponati2023sequence,
+  title={Sequence anticipation and spike-timing-dependent plasticity emerge from a predictive learning rule},
+  author={Saponati, Matteo and Vinck, Martin},
+  journal={Nature communications},
+  volume={14},
+  number={1},
+  pages={1--13},
+  year={2023},
+  publisher={Nature Publishing Group}
+}
