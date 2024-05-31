@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from models.NeuronClass import NeuronClassNumPy
+from models.NeuronClassNumPy import NeuronClass
 from utils.TrainerClassNumPy import TrainerClass
 from utils.data import get_spike_times, get_dataset_sequence
 
@@ -45,10 +45,10 @@ w_0 = np.array([.001,.11])
 
 '-----------------------------------------------------------------'
 
-class NeuronClass(NeuronClassNumPy):
+class NeuronClass(NeuronClass):
     
     def __init__(self,par,idx):
-        super(NeuronClassNumPy, self).__init__()
+        super(NeuronClass, self).__init__()
         self.par = par  
         self.alpha = (1-self.par.dt/self.par.tau_m)       
         self.idx = idx     

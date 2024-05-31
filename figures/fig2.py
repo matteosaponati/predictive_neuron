@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from utils.funs import get_dir_results, get_hyperparameters
-from models.NeuronClass import NeuronClassNumPy
+from models.NeuronClassNumPy import NeuronClass
 from utils.TrainerClassNumPy import TrainerClass
 
 '-------------------------------'
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     par.train_nb = par.batch
     par.test_nb = par.batch
         
-    neuron = NeuronClassNumPy(par)
+    neuron = NeuronClass(par)
     neuron.initialize()
 
     'train'

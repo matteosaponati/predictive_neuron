@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from models.NeuronClass import NeuronClassNumPy
+from models.NeuronClassNumPy import NeuronClass
 from utils.TrainerClassNumPy import TrainerClass
 from utils.data import get_spike_times, get_dataset_sequence
 
@@ -56,7 +56,7 @@ w0_list = [[.15,.15,],[.06,.06],[.02,.15]]
 for idx, w0 in enumerate(w0_list):
 
     print(idx)
-    neuron = NeuronClassNumPy(par)
+    neuron = NeuronClass(par)
     neuron.initialize()
     neuron.w = np.array(w0)
 
@@ -127,7 +127,7 @@ w2 = np.zeros((w_sweep.size,w_sweep.size))
 for i, w_i in enumerate(w_sweep):
     for j, w_j in enumerate(w_sweep):
 
-        neuron = NeuronClassNumPy(par)
+        neuron = NeuronClass(par)
         neuron.initialize()
         
         neuron.w = np.array([w_i,w_j])

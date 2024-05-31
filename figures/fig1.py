@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from models.NeuronClass import NeuronClassNumPy
+from models.NeuronClassNumPy import NeuronClass
 from utils.TrainerClassNumPy import TrainerClass
 from utils.data import get_spike_times, get_dataset_sequence
 
@@ -52,7 +52,7 @@ par.init = 'fixed'
 
 for idx, par.init_mean in enumerate([.005,.03,.05]):
 
-    neuron = NeuronClassNumPy(par)
+    neuron = NeuronClass(par)
     neuron.initialize()
 
     trainer = TrainerClass(par,neuron,x,x)

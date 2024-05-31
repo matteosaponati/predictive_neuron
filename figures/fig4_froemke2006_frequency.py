@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from models.NeuronClass import NeuronClassNumPy
+from models.NeuronClassNumPy import NeuronClass
 from utils.TrainerClassNumPy import TrainerClass
 from utils.data import get_spike_times, get_dataset_sequence
 
@@ -70,7 +70,7 @@ for k, dt_burst in enumerate(burst_sweep):
             if n < par.N_seq: x[b,n,spk_times[n]] = 1
             x[b,n,:] = np.convolve(x[b,n,:],np.exp(-np.arange(0,par.T*par.dt,par.dt)/par.tau_x))[:par.T]  
 
-    neuron = NeuronClassNumPy(par)
+    neuron = NeuronClass(par)
     neuron.initialize()
     neuron.w = w_0.copy()
     trainer = TrainerClass(par,neuron,x,x)
