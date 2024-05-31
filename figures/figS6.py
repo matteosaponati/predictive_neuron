@@ -5,10 +5,10 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from utils.funs import get_dir_results, get_hyperparameters
-from models.SelfOrgNetworkClass import NetworkClassNumPy
-from utils.TrainerClassNumPy_SelfOrg import TrainerClass
-from utils.data import get_spike_times
+from src.utils.funs import get_dir_results, get_hyperparameters
+from src.models.SelfOrgNetworkClass import NetworkClassNumPy
+from src.utils.TrainerClassNumPy_SelfOrg import TrainerClass
+from src.utils.data import get_spike_times
 
 parser = argparse.ArgumentParser()
 

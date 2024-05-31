@@ -13,8 +13,8 @@ class MidpointNormalize(colors.Normalize):
 		x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
 		return np.ma.masked_array(np.interp(value, x, y), np.isnan(value))
 
-from utils.funs import get_dir_results, get_continuous_cmap
-from utils.data import get_spike_times
+from src.utils.funs import get_dir_results, get_continuous_cmap
+from src.utils.data import get_spike_times
 
 '-----------------------------------------'
 

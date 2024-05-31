@@ -2,9 +2,9 @@ import argparse
 import os
 import numpy as np
 
-from utils.funs import get_dir_results, get_hyperparameters
-from models.NeuronClassNumPy import NeuronClass
-from utils.TrainerClassNumPy import TrainerClass
+from src.utils.funs import get_dir_results, get_hyperparameters
+from src.models.NeuronClassNumPy import NeuronClass
+from src.utils.TrainerClassNumPy import TrainerClass
 
 '-------------------------------'
 

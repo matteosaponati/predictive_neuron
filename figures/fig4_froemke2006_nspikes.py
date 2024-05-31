@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({'font.size': 22})
 plt.rc('axes', axisbelow=True)
 
-from models.NeuronClassNumPy import NeuronClass
-from utils.TrainerClassNumPy import TrainerClass
-from utils.data import get_spike_times, get_dataset_sequence
+from src.models.NeuronClassNumPy import NeuronClass
+from src.utils.TrainerClassNumPy import TrainerClass
+from src.utils.data import get_spike_times, get_dataset_sequence
 
 parser = argparse.ArgumentParser()
 

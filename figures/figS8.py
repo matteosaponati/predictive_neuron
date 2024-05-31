@@ -2,9 +2,9 @@ import argparse
 import os
 import numpy as np
 
-from utils.funs import get_dir_results, get_hyperparameters
-from models.RandomNetworkClass import NetworkClassNumPy
-from utils.TrainerClassNumPy_SelfOrg import TrainerClass
+from src.utils.funs import get_dir_results, get_hyperparameters
+from src.models.RandomNetworkClass import NetworkClassNumPy
+from src.utils.TrainerClassNumPy_SelfOrg import TrainerClass
 
 '-------------------------------'
 
