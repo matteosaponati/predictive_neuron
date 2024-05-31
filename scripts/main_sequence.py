@@ -23,7 +23,7 @@ def main(path):
 
     if par.package == 'NumPy':
 
-        from models.NeuronClass import NeuronClassNumPy
+        from models.NeuronClassNumPy import NeuronClass
         from utils.TrainerClassNumPy import TrainerClass
 
         loaddir = ('../_datasets/N_seq_{}_N_dist_{}_Dt_{}/'+
@@ -38,7 +38,7 @@ def main(path):
         par.train_nb = int(train_data.shape[0]/par.batch)
         par.test_nb = int(test_data.shape[0]/par.batch)
         
-        neuron = NeuronClassNumPy(par)
+        neuron = NeuronClass(par)
         neuron.initialize()
 
         'train'
@@ -51,7 +51,7 @@ def main(path):
 
     if par.package == 'PyTorch':
         
-        from models.NeuronClass import NeuronClassPyTorch
+        from models.NeuronClassPyTorch import NeuronClass
         from utils.TrainerClassPyTorch import TrainerClass
 
         loaddir = ('../_datasets/N_seq_{}_N_dist_{}_Dt_{}/'+
@@ -72,7 +72,7 @@ def main(path):
         par.train_nb = int(train_data.shape[0]/par.batch)
         par.test_nb = int(test_data.shape[0]/par.batch)
 
-        neuron = NeuronClassPyTorch(par)
+        neuron = NeuronClass(par)
         neuron.initialize()
 
         if par.optimizer == 'SGD':
