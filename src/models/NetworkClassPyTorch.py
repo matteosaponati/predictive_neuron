@@ -22,6 +22,7 @@ class NeuronClass(nn.Module):
         Args:
         - par: object containing the parameters of the neuron
         """
+
         self.par = par  
         self.alpha = (1 - self.par.dt / self.par.tau_m)              
 
@@ -32,16 +33,18 @@ class NeuronClass(nn.Module):
         - 'uniform': Initialize the weights using a uniform distribution.
         - 'fixed': Initialize the weights with a fixed value.
         """
-        self.w = nn.Parameter(torch.empty(self.par.N)).to(self.par.device)
-        torch.nn.init.normal_(self.w, mean=0.0, std=1/torch.sqrt(self.par.N))
+        
         if self.par.init == 'trunc_gauss':
             self.w = nn.Parameter(torch.empty(self.par.N)).to(self.par.device)
-            torch.nn.init.trunc_normal_(self.w, mean=self.par.init_mean, std=1/torch.sqrt(self.par.N),
-                                    a=self.par.init_a,b=self.par.init_b)
-        if self.par.init == 'uniform':
+            torch.nn.init.trunc_normal_(self.w, mean = self.par.init_mean, std = 1 / torch.sqrt(self.par.N),
+                                    a = self.par.init_a, b = self.par.init_b)
+        elif self.par.init == 'uniform':
             self.w = nn.Parameter(self.par.init_mean*torch.rand(self.par.N))
-        if self.par.init == 'fixed':
+        elif self.par.init == 'fixed':
             self.w = nn.Parameter(self.par.init_mean*torch.ones(self.par.N)).to(self.par.device)
+        else:
+            self.w = nn.Parameter(torch.empty(self.par.N)).to(self.par.device)
+            torch.nn.init.normal_(self.w, mean = 0., std = 1 / torch.sqrt(self.par.N))
         
     def state(self):
         """
@@ -53,12 +56,13 @@ class NeuronClass(nn.Module):
         - self.E: Tensor of shape (self.par.batch,) representing the global signal.
         - self.grad: Tensor of shape (self.par.batch, self.par.N) representing the gradient.
         """
-        self.v = torch.zeros(self.par.batch).to(self.par.device)
-        self.z = torch.zeros(self.par.batch).to(self.par.device)
-        self.p = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
-        self.epsilon = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
-        self.E = torch.zeros(self.par.batch).to(self.par.device)
-        self.grad = torch.zeros(self.par.batch,self.par.N).to(self.par.device)
+
+        self.v = torch.zeros(self.par.batch, device = self.par.device)
+        self.z = torch.zeros(self.par.batch, device = self.par.device)
+        self.p = torch.zeros(self.par.batch,self.par.N, device = self.par.device)
+        self.epsilon = torch.zeros(self.par.batch,self.par.N, device = self.par.device)
+        self.E = torch.zeros(self.par.batch, device = self.par.device)
+        self.grad = torch.zeros(self.par.batch,self.par.N, device = self.par.device)
         
     def __call__(self,x):
         """
@@ -69,11 +73,9 @@ class NeuronClass(nn.Module):
         - self.v: Tensor of shape (self.par.batch,) 
         - self.z: Tensor of shape (self.par.batch,)
         """
-        self.v = self.alpha*self.v + x@self.w \
-                    - self.par.v_th*self.z.detach()
-        
-        self.z = torch.zeros(self.par.batch).to(self.par.device)
-        self.z[self.v - self.par.v_th > 0] = 1
+
+        self.v = self.alpha*self.v + torch.matmul(x, self.w) - self.par.v_th * self.z.detach()
+        self.z = (self.v > self.par.v_th).float()
         
     def backward_online(self,x):
         """
@@ -86,11 +88,11 @@ class NeuronClass(nn.Module):
         - self.grad: Tensor of shape (self.par.batch, self.par.N) 
         - self.p: Tensor of shape (self.par.batch, self.par.N)
         """
-        self.epsilon =  x - self.v[:,None]*self.w[None,:]
-        self.E = self.epsilon@self.w
-        self.grad = -(self.v[:,None]*self.epsilon + \
-                        self.E[:,None]*self.p)
-        self.p = self.alpha*self.p + x
+
+        self.epsilon = x - self.v.unsqueeze(1) * self.w
+        self.E = torch.matmul(self.epsilon, self.w)
+        self.grad = - (self.v.unsqueeze(1) * self.epsilon + self.E.unsqueeze(1) * self.p)
+        self.p = self.alpha * self.p + x
         
     def update_online(self):
         """
@@ -105,14 +107,10 @@ class NeuronClass(nn.Module):
 
         'else':the weight (w) is updated by subtracting the scaled gradient.
         """
+
+        grad_mean = self.par.eta * torch.mean(self.grad, dim=0)
         if self.par.bound == 'soft':
-            self.w =  nn.Parameter(self.w - 
-                                   self.w*(self.par.eta*torch.mean(self.grad,dim=0)))
-        if self.par.bound == 'hard':
-            self.w =  nn.Parameter(self.w - 
-                                   self.par.eta*torch.mean(self.grad,dim=0))
-            self.w = nn.Parameter(torch.where(self.w<0,
-                                       torch.zeros_like(self.w),self.w))
+            self.w = self.w - self.w * grad_mean
         else:
-            self.w =  nn.Parameter(self.w - 
-                                   self.par.eta*torch.mean(self.grad,dim=0))
+            self.w = self.w - grad_mean
+            if self.par.bound == 'hard': self.w = nn.Parameter(torch.clamp(self.w, min=0))
